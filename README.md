@@ -85,6 +85,23 @@ cd azerothcore-repack/azerothcore-wotlk
 docker compose up -d
 ```
 
+## Manual Installation (Build It Yourself)
+
+If you prefer to build from source and choose your own modules:
+
+```bash
+git clone <this-repo>
+cd azerothcore-linux-repack
+./install.sh
+```
+
+Edit `install.sh` to add or remove modules as desired. After the build completes:
+```bash
+./setup-sql.sh
+```
+
+**Note:** The `.tar.xz` release is a prebuilt snapshot with a specific module set — mainly for convenience and as a personal backup.
+
 ## License
 
 AzerothCore is released under the [GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.en.html). Each module retains its own license.
