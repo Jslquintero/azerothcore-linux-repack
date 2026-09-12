@@ -1,0 +1,1 @@
+void Addmod_class_paladin_sacred_flameScripts();
