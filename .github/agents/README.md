@@ -57,4 +57,3 @@ To update agent configurations:
 - C++ standards: [C++ Code Standards](https://github.com/azerothcore/wiki/blob/master/docs/cpp-code-standards.md)
 - SQL standards: [SQL Standards](https://github.com/azerothcore/wiki/blob/master/docs/sql-standards.md)
 - PR template: `/pull_request_template.md`
-- Contribution guide: `/.github/CONTRIBUTING.md`

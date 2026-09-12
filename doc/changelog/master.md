@@ -414,7 +414,7 @@ minimal-dynamic - builds commands and spells dynamically. Now don't support
 - Example loader script for modules:
 ```cpp
 /*
- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE
+ * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license
  */
 
 // From SC
@@ -516,5 +516,4 @@ Example: `getAreaInfo` -> `GetAreaInfo`
 ### How to upgrade
 
 To create a new changelog please follow the instructions on our [wiki page](https://www.azerothcore.org/wiki/how-to-use-changelog)
-
 
