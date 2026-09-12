@@ -1,16 +1,21 @@
-# AzerothCore Linux Repack
+# AzerothCore Linux Repack by Jslquintero
 
-[Español](README.es.md)
+## English
 
-A personal, self-contained AzerothCore WotLK repack for Linux, based on the
-mod-playerbots AzerothCore branch. It ships the server source, Docker setup, and
-all included modules in one repository so it can be cloned and started with
-Docker Compose.
+This is my personal Linux repack for **AzerothCore WotLK 3.3.5a**, packaged as a
+self-contained repo with Docker Compose, included modules, and my own gameplay
+defaults.
 
-This is a personal repack shaped around my own preferred gameplay defaults. It
-is public in case someone else wants to use it, fork it, or build on it.
+It is based on the mod-playerbots AzerothCore branch, but this repo is meant to
+stand on its own. I made local changes to both the core and some modules,
+including Playerbots behavior, so the goal is simple: clone it, start it, and
+play without hunting down separate module repos.
 
-## Quick Start
+This is not an official AzerothCore distribution. It is a personal server setup
+that I am sharing publicly in case someone else finds it useful, wants to fork
+it, or wants to use it as a base for their own server.
+
+### Quick Start
 
 Requirements:
 
@@ -47,31 +52,37 @@ Set your WoW 3.3.5a client realmlist to:
 set realmlist 127.0.0.1
 ```
 
-For LAN use, replace `127.0.0.1` with the server machine's LAN IP.
+For LAN, replace `127.0.0.1` with the server machine's LAN IP.
 
-## Included Defaults
+### Repack Defaults
 
-This repository intentionally ships an official `docker-compose.override.yml`.
-Docker Compose loads it automatically together with `docker-compose.yml`; in
-this repack, the override is part of the intended setup, not a private local
+This repo intentionally includes an official `docker-compose.override.yml`.
+Docker Compose loads it automatically together with `docker-compose.yml`. In
+this repack, the override is part of the default setup, not a private local
 file.
 
-The included setup enables the repack's defaults, including:
+Included gameplay defaults:
 
-- Playerbots.
-- Individual progression.
+- Playerbots enabled.
+- Individual Progression enabled.
 - Blood Elves, Draenei, and Death Knights available from the start.
 - Random bot progression, level, race, class, and map handling adapted for this
   repack.
-- Autobalance, transmog, account mounts, account achievements, auction house
-  bot, AoE loot, learn spells, leech, reagent bank, no hearthstone cooldown, and
-  Time Is Time.
+- Autobalance.
+- Transmog.
+- Account-wide mounts and achievements.
+- Auction House Bot.
+- AoE Loot.
+- Learn Spells.
+- Leech.
+- Reagent Bank.
+- No Hearthstone cooldown.
+- Time Is Time.
 
-## Included Modules
+### Included Modules
 
 Modules are vendored directly under `modules/` as normal folders, not Git
-submodules. This keeps the repository self-contained for people who just want to
-clone, start, and play.
+submodules. This keeps the repo self-contained.
 
 Notable included modules:
 
@@ -88,22 +99,22 @@ Notable included modules:
 - `mod-reagent-bank`
 - `mod-TimeIsTime`
 
-## Optional Dashboard
+### Optional Dashboard
 
-There is also a custom dashboard that can be used with this repack:
+I also made a custom dashboard that can be used with this repack:
 
 https://github.com/Jslquintero/azerothcore-dashboard
 
 The dashboard is an Electron app for managing AzerothCore Docker services on
-Linux. Its README describes features such as service start/stop/restart,
-worldserver console commands, account management, live logs, editing
-`docker-compose.override.yml` variables, realm settings, an item browser, module
-documentation, tray integration, and update notifications.
+Linux. It can be used for service start/stop/restart, worldserver console
+commands, account management, live logs, editing `docker-compose.override.yml`
+variables, realm settings, item browsing, module docs, tray integration, and
+update notifications.
 
-The dashboard is optional. The repack works from the terminal with the scripts in
-this repository.
+The dashboard is optional. This repack also works from the terminal with the
+scripts included here.
 
-## Local Configuration
+### Local Config
 
 `start.sh` creates `.env` from `.env.example` if `.env` does not already exist.
 Edit `.env` for local settings such as ports, database password, or volume
@@ -127,11 +138,159 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-co
 Files named `*.local.yml`, `*.local.yaml`, `*.local.override.yml`, and
 `*.local.override.yaml` are ignored by Git.
 
-## Notes
+### Notes
 
-- This repack is aimed at personal servers and playing with friends.
-- It is not intended as a professional private server hosting package.
-- Large SQL files are included because AzerothCore needs them for a complete
-  source-based setup.
+- Built for personal servers and playing with friends.
+- Not intended as a professional private server hosting package.
+- Large SQL files are included because this is a source-based repack.
 - Client data extraction may still be required depending on your Docker image
   setup and available volumes.
+
+---
+
+## Español
+
+Este es mi repack personal para Linux de **AzerothCore WotLK 3.3.5a**,
+empaquetado como un repo autocontenido con Docker Compose, módulos incluidos y
+mis propios defaults de gameplay.
+
+Está basado en la rama de AzerothCore de mod-playerbots, pero este repo está
+pensado para funcionar como proyecto independiente. Hice cambios locales tanto
+en el core como en algunos módulos, incluyendo comportamiento de Playerbots, así
+que la idea es simple: clonar, iniciar y jugar sin tener que buscar módulos en
+repos separados.
+
+Esta no es una distribución oficial de AzerothCore. Es mi setup personal de
+servidor, publicado por si a alguien más le sirve, quiere hacer fork o usarlo
+como base para su propio servidor.
+
+### Inicio Rápido
+
+Requisitos:
+
+- Docker
+- Docker Compose v2
+
+Iniciar el repack:
+
+```bash
+./start.sh
+```
+
+Ver logs de authserver y worldserver:
+
+```bash
+./logs.sh
+```
+
+Detener todo:
+
+```bash
+./stop.sh
+```
+
+Entrar a la consola del worldserver:
+
+```bash
+./console.sh
+```
+
+Configura el realmlist de tu cliente WoW 3.3.5a así:
+
+```text
+set realmlist 127.0.0.1
+```
+
+Para LAN, cambia `127.0.0.1` por la IP LAN de la máquina donde corre el
+servidor.
+
+### Defaults Del Repack
+
+Este repo incluye intencionalmente un `docker-compose.override.yml` oficial.
+Docker Compose lo carga automáticamente junto con `docker-compose.yml`. En este
+repack, el override es parte del setup default, no un archivo local privado.
+
+Defaults de gameplay incluidos:
+
+- Playerbots activado.
+- Individual Progression activado.
+- Blood Elves, Draenei y Death Knights disponibles desde el inicio.
+- Manejo de progresión, nivel, raza, clase y mapas de random bots adaptado para
+  este repack.
+- Autobalance.
+- Transmog.
+- Mounts y achievements account-wide.
+- Auction House Bot.
+- AoE Loot.
+- Learn Spells.
+- Leech.
+- Reagent Bank.
+- Sin cooldown de Hearthstone.
+- Time Is Time.
+
+### Módulos Incluidos
+
+Los módulos están vendorizados directamente bajo `modules/` como carpetas
+normales, no como Git submodules. Esto mantiene el repo autocontenido.
+
+Módulos destacados:
+
+- `mod-playerbots`
+- `mod-individual-progression`
+- `mod-autobalance`
+- `mod-ah-bot`
+- `mod-transmog`
+- `mod-account-achievements`
+- `mod-account-mounts`
+- `mod-aoe-loot`
+- `mod-learn-spells`
+- `mod-player-bot-level-brackets`
+- `mod-reagent-bank`
+- `mod-TimeIsTime`
+
+### Dashboard Opcional
+
+También hice un dashboard custom que se puede usar con este repack:
+
+https://github.com/Jslquintero/azerothcore-dashboard
+
+El dashboard es una app Electron para manejar servicios Docker de AzerothCore en
+Linux. Sirve para iniciar/detener/reiniciar servicios, ejecutar comandos en la
+consola del worldserver, manejar cuentas, ver logs en vivo, editar variables de
+`docker-compose.override.yml`, cambiar settings del realm, buscar items, ver
+docs de módulos, usar tray integration y recibir update notifications.
+
+El dashboard es opcional. Este repack también funciona desde la terminal con los
+scripts incluidos aquí.
+
+### Config Local
+
+`start.sh` crea `.env` desde `.env.example` si `.env` todavía no existe. Edita
+`.env` para settings locales como puertos, password de base de datos o nombres
+de volúmenes.
+
+Valores comunes:
+
+```env
+DOCKER_AUTH_EXTERNAL_PORT=3724
+DOCKER_WORLD_EXTERNAL_PORT=8085
+DOCKER_SOAP_EXTERNAL_PORT=7878
+DOCKER_DB_EXTERNAL_PORT=3306
+```
+
+Para overrides personales de Compose, crea un archivo local separado:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.local.yml up -d --build
+```
+
+Los archivos `*.local.yml`, `*.local.yaml`, `*.local.override.yml` y
+`*.local.override.yaml` son ignorados por Git.
+
+### Notas
+
+- Hecho para servidores personales y jugar con amigos.
+- No está pensado como paquete profesional para hosting de servidores privados.
+- Los SQL grandes están incluidos porque este es un repack basado en source.
+- La extracción de datos del cliente puede seguir siendo necesaria dependiendo
+  de la imagen Docker y los volúmenes disponibles.
