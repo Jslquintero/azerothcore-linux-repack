@@ -49,6 +49,13 @@ The three databases:
 - `acore_characters` — per-character state: characters, inventory, in-progress quests, mail, guilds, arena teams, achievements. One per realm.
 - `acore_world` — static game content: creature/gameobject/item/quest templates, spawn lists, loot tables, SmartAI scripts, gossip, conditions. Read-mostly; rebuilt from SQL.
 
+## Custom racial spells
+
+For custom active racials with cooldowns, visible timed auras, client tooltips/icons, and persistent VFX, follow
+[`doc/CustomRacialSpells.md`](doc/CustomRacialSpells.md). Keep the server `spell_dbc` records, client `Spell.dbc`,
+client `SkillLineAbility.dbc`, and custom MPQ synchronized. Verify duration indexes against the actual
+`SpellDuration.dbc`; an index is not a duration in seconds.
+
 ## Code style
 
 Formatting (charset, indent width, line length, final newline, trailing whitespace) follows `.editorconfig`.

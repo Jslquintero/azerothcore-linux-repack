@@ -2431,6 +2431,9 @@ void SpellInfo::_LoadImmunityInfo()
                     case 208683: // Gladiator's Medallion
                         mechanicImmunityMask |= IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK;
                         break;
+                    case 910029: // WoW Forever - Will to Survive
+                        mechanicImmunityMask |= 1ULL << MECHANIC_STUN;
+                        break;
                     case 54508: // Demonic Empowerment
                         mechanicImmunityMask |= (1ULL << MECHANIC_SNARE) | (1ULL << MECHANIC_ROOT) | (1ULL << MECHANIC_STUN);
                         break;

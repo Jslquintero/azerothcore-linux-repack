@@ -3883,9 +3883,15 @@ void SpellMgr::LoadSpellInfoCorrections()
     });
 
     // Shadowmeld
-    ApplySpellFix({ 58984 }, [](SpellInfo* spellInfo)
+    ApplySpellFix({ 20580, 58984 }, [](SpellInfo* spellInfo)
     {
         spellInfo->AttributesEx3 |= SPELL_ATTR3_ONLY_ON_PLAYER;
+    });
+
+    // WoW Forever - Wisp Spirit speed helper.
+    ApplySpellFix({ 910032 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->AttributesEx3 |= SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD;
     });
 
     // Flare activation speed
@@ -4987,6 +4993,68 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 20337 }, [](SpellInfo* spellInfo)
     {
         spellInfo->Effects[EFFECT_1].TriggerSpell = 54499; // Heart of the Crusader (Rank 3)
+    });
+
+    // Blood Fury: all Orc classes receive 10% melee AP, ranged AP and Spell Power.
+    ApplySpellFix({ 20572, 33697, 33702 }, [](SpellInfo* spellInfo)
+    {
+        for (SpellEffectInfo& effect : spellInfo->Effects)
+        {
+            effect.Effect = SPELL_EFFECT_APPLY_AURA;
+            effect.DieSides = 1;
+            effect.RealPointsPerLevel = 0.0f;
+            effect.BasePoints = 9;
+            effect.TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+            effect.TargetB = SpellImplicitTargetInfo(0);
+            effect.MiscValue = 0;
+            effect.TriggerSpell = 0;
+        }
+
+        spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_ATTACK_POWER_PCT;
+        spellInfo->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MOD_RANGED_ATTACK_POWER_PCT;
+        spellInfo->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_DUMMY;
+    });
+
+    // Hardiness
+    ApplySpellFix({ 20573 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].DieSides = 1;
+        spellInfo->Effects[EFFECT_0].RealPointsPerLevel = 0.0f;
+        spellInfo->Effects[EFFECT_0].BasePoints = -21;
+    });
+
+    // Axe Specialization: crit is applied by the WoW Forever racial script.
+    ApplySpellFix({ 20574 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_DUMMY;
+        spellInfo->Effects[EFFECT_0].DieSides = 1;
+        spellInfo->Effects[EFFECT_0].RealPointsPerLevel = 0.0f;
+        spellInfo->Effects[EFFECT_0].BasePoints = -1;
+    });
+
+    // Endurance: total Health increased by 5% and chance to hit increased by 1%.
+    ApplySpellFix({ 20550 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0].Effect = SPELL_EFFECT_APPLY_AURA;
+        spellInfo->Effects[EFFECT_0].ApplyAuraName = SPELL_AURA_MOD_INCREASE_HEALTH_PERCENT;
+        spellInfo->Effects[EFFECT_0].DieSides = 1;
+        spellInfo->Effects[EFFECT_0].RealPointsPerLevel = 0.0f;
+        spellInfo->Effects[EFFECT_0].BasePoints = 4;
+        spellInfo->Effects[EFFECT_0].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+
+        spellInfo->Effects[EFFECT_1].Effect = SPELL_EFFECT_APPLY_AURA;
+        spellInfo->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MOD_HIT_CHANCE;
+        spellInfo->Effects[EFFECT_1].DieSides = 1;
+        spellInfo->Effects[EFFECT_1].RealPointsPerLevel = 0.0f;
+        spellInfo->Effects[EFFECT_1].BasePoints = 0;
+        spellInfo->Effects[EFFECT_1].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
+
+        spellInfo->Effects[EFFECT_2].Effect = SPELL_EFFECT_APPLY_AURA;
+        spellInfo->Effects[EFFECT_2].ApplyAuraName = SPELL_AURA_MOD_SPELL_HIT_CHANCE;
+        spellInfo->Effects[EFFECT_2].DieSides = 1;
+        spellInfo->Effects[EFFECT_2].RealPointsPerLevel = 0.0f;
+        spellInfo->Effects[EFFECT_2].BasePoints = 0;
+        spellInfo->Effects[EFFECT_2].TargetA = SpellImplicitTargetInfo(TARGET_UNIT_CASTER);
     });
 
     // Gordok Ogre Suit

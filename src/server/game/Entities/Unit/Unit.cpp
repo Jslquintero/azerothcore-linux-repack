@@ -3505,6 +3505,12 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
         return SPELL_MISS_NONE;
     }
 
+    SpellMissInfo scriptedMissInfo = SPELL_MISS_NONE;
+    if (sScriptMgr->OnMagicSpellHitResult(this, victim, spellInfo, scriptedMissInfo))
+    {
+        return scriptedMissInfo;
+    }
+
     SpellSchoolMask schoolMask = spellInfo->GetSchoolMask();
     int32 thisLevel = getLevelForTarget(victim);
     if (IsCreature() && ToCreature()->IsTrigger())
@@ -9102,7 +9108,7 @@ int32 Unit::SpellBaseDamageBonusTaken(SpellSchoolMask schoolMask, bool isDoT)
     });
 }
 
-float Unit::SpellDoneCritChance(Unit const* /*victim*/, SpellInfo const* spellProto, SpellSchoolMask schoolMask, WeaponAttackType attackType, bool skipEffectCheck) const
+float Unit::SpellDoneCritChance(Unit const* victim, SpellInfo const* spellProto, SpellSchoolMask schoolMask, WeaponAttackType attackType, bool skipEffectCheck) const
 {
     // Mobs can't crit with spells.
     if (IsCreature() && !GetSpellModOwner())
@@ -9187,6 +9193,8 @@ float Unit::SpellDoneCritChance(Unit const* /*victim*/, SpellInfo const* spellPr
     // only players use intelligence for critical chance computations
     if (Player* modOwner = GetSpellModOwner())
         modOwner->ApplySpellMod(spellProto->Id, SPELLMOD_CRITICAL_CHANCE, crit_chance);
+
+    sScriptMgr->ModifySpellCritChance(this, victim, spellProto, schoolMask, attackType, crit_chance);
 
     // xinef: can be negative!
     return crit_chance;

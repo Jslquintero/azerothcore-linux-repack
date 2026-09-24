@@ -4735,13 +4735,22 @@ class spell_gen_arcane_charge : public SpellScript
 
 // 20589 - Escape artist
 // 30918 - Improved Sprint
+enum WowForeverEscapeArtistSpells
+{
+    SPELL_WF_ESCAPE_ARTIST_AURA = 910003
+};
+
 class spell_gen_remove_impairing_auras : public SpellScript
 {
     PrepareSpellScript(spell_gen_remove_impairing_auras);
 
     void HandleScriptEffect(SpellEffIndex /* effIndex */)
     {
-        GetHitUnit()->RemoveMovementImpairingAuras(true);
+        Unit* target = GetHitUnit();
+        target->RemoveMovementImpairingAuras(true);
+
+        if (GetSpellInfo()->Id == 20589)
+            target->CastSpell(target, SPELL_WF_ESCAPE_ARTIST_AURA, true);
     }
 
     void Register() override

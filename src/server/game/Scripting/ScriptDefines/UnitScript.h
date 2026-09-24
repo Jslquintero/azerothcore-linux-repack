@@ -19,6 +19,7 @@
 #define SCRIPT_OBJECT_UNIT_SCRIPT_H_
 
 #include "ScriptObject.h"
+#include "SharedDefines.h"
 #include <vector>
 
 enum UnitHook
@@ -28,6 +29,8 @@ enum UnitHook
     UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK,
     UNITHOOK_MODIFY_MELEE_DAMAGE,
     UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN,
+    UNITHOOK_MODIFY_SPELL_CRIT_CHANCE,
+    UNITHOOK_ON_MAGIC_SPELL_HIT_RESULT,
     UNITHOOK_MODIFY_HEAL_RECEIVED,
     UNITHOOK_ON_BEFORE_ROLL_MELEE_OUTCOME_AGAINST,
     UNITHOOK_ON_AURA_APPLY,
@@ -72,6 +75,17 @@ public:
 
     // Called when Spell Damage is being Dealt
     virtual void ModifySpellDamageTaken(Unit* /*target*/, Unit* /*attacker*/, int32& /*damage*/, SpellInfo const* /*spellInfo*/) { }
+
+    // Called when spell critical chance is calculated
+    virtual void ModifySpellCritChance(Unit const* /*caster*/, Unit const* /*victim*/, SpellInfo const* /*spellInfo*/,
+        SpellSchoolMask /*schoolMask*/, WeaponAttackType /*attackType*/, float& /*critChance*/) { }
+
+    // Called before a magic spell hit result is finalized
+    virtual bool OnMagicSpellHitResult(
+        Unit* /*caster*/, Unit* /*target*/, SpellInfo const* /*spellInfo*/, SpellMissInfo& /*missInfo*/)
+    {
+        return false;
+    }
 
     // Called when Heal is Recieved
     virtual void ModifyHealReceived(Unit* /*target*/, Unit* /*healer*/, uint32& /*heal*/, SpellInfo const* /*spellInfo*/) { }

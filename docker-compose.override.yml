@@ -20,21 +20,21 @@ services:
       ###########################################################################
       #  FAKE LOGIN QUEUE
       ###########################################################################
-      AC_FAKE_QUEUE_MODE: "2"                 # 0=off, 1=always, 2=random
-      AC_FAKE_QUEUE_CHANCE: "50"              # percent, used only by random mode
-      AC_FAKE_QUEUE_DELAY: "600"            # milliseconds, capped at 300000
+      AC_FAKE_QUEUE_MODE: "0"                 # 0=off, 1=always, 2=random
+      AC_FAKE_QUEUE_CHANCE: "30"              # percent, used only by random mode
+      AC_FAKE_QUEUE_DELAY: "300"            # milliseconds, capped at 300000
       AC_FAKE_QUEUE_APPLY_TO_SKIP_QUEUE: "1"  # also queue GM/admin/skip-queue accounts
 
       ###########################################################################
       #  PLAYERBOTS
       ###########################################################################
       AC_AI_PLAYERBOT_ENABLED: "1"
-      AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: "1"
-      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "500"
-      AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: "500"
+      AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: "0"
+      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "0"
+      AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: "0"
       AC_AI_PLAYERBOT_RANDOM_BOT_ACCOUNT_COUNT: "0"
       AC_AI_PLAYERBOT_DISABLED_WITHOUT_REAL_PLAYER: "0"
-      AC_AI_PLAYERBOT_RANDOM_BOT_LOGIN_AT_STARTUP: "1"
+      AC_AI_PLAYERBOT_RANDOM_BOT_LOGIN_AT_STARTUP: "0"
       AC_AI_PLAYERBOT_DISABLE_DEATH_KNIGHT_LOGIN: "0"
       AC_AI_PLAYERBOT_RANDOM_BOT_UPDATE_INTERVAL: "10"
       AC_AI_PLAYERBOT_GLOBAL_COOLDOWN: "1500"
@@ -167,15 +167,31 @@ services:
       #  ACCOUNT MOUNTS
       ###########################################################################
       AC_ACCOUNT_MOUNTS_ENABLE: "1"
-      AC_ACCOUNT_MOUNTS_LIMIT_RACE: "0"
+      AC_ACCOUNT_MOUNTS_LIMIT_RACE: "1"
 
       ###########################################################################
       #  LEECH
       ###########################################################################
-      AC_LEECH_ENABLE: "1"
+      AC_LEECH_ENABLE: "0"
       AC_LEECH_DUNGEONS_ONLY: "0"
       AC_LEECH_AMOUNT: "0.05"
       AC_LEECH_REQUIRED_ITEM_ID: "0"
+
+      ###########################################################################
+      #  PALADIN SPELL BLOCK
+      ###########################################################################
+      AC_PALADIN_SPELL_BLOCK_ENABLE: "0"
+      AC_PALADIN_SPELL_BLOCK_REQUIRE_SHIELD: "1"
+      AC_PALADIN_SPELL_BLOCK_REQUIRE_FRONT_ARC: "1"
+      AC_PALADIN_SPELL_BLOCK_MIN_HOLY_POINTS: "10"
+      AC_PALADIN_SPELL_BLOCK_MIN_PROTECTION_POINTS: "10"
+      AC_PALADIN_SPELL_BLOCK_ALLOW_DOMINANT_TREE: "0"
+      AC_PALADIN_SPELL_BLOCK_USE_REAL_BLOCK_CHANCE: "1"
+      AC_PALADIN_SPELL_BLOCK_HOLY_BONUS_CHANCE: "6.0"
+      AC_PALADIN_SPELL_BLOCK_PROTECTION_BONUS_CHANCE: "10.0"
+      AC_PALADIN_SPELL_BLOCK_MAX_CHANCE: "35.0"
+      AC_PALADIN_SPELL_BLOCK_ALLOW_AREA_SPELLS: "0"
+      AC_PALADIN_SPELL_BLOCK_PLAY_ANIMATION: "1"
 
       ###########################################################################
       #  NO HEARTHSTONE COOLDOWN

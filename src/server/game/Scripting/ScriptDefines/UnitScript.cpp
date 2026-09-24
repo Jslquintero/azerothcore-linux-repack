@@ -44,6 +44,20 @@ void ScriptMgr::ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& dama
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN, script->ModifySpellDamageTaken(target, attacker, damage, spellInfo));
 }
 
+void ScriptMgr::ModifySpellCritChance(Unit const* caster, Unit const* victim, SpellInfo const* spellInfo,
+    SpellSchoolMask schoolMask, WeaponAttackType attackType, float& critChance)
+{
+    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_SPELL_CRIT_CHANCE,
+        script->ModifySpellCritChance(caster, victim, spellInfo, schoolMask, attackType, critChance));
+}
+
+bool ScriptMgr::OnMagicSpellHitResult(Unit* caster, Unit* target, SpellInfo const* spellInfo, SpellMissInfo& missInfo)
+{
+    CALL_ENABLED_BOOLEAN_HOOKS_WITH_DEFAULT_FALSE(
+        UnitScript, UNITHOOK_ON_MAGIC_SPELL_HIT_RESULT,
+        script->OnMagicSpellHitResult(caster, target, spellInfo, missInfo));
+}
+
 void ScriptMgr::ModifyHealReceived(Unit* target, Unit* healer, uint32& heal, SpellInfo const* spellInfo)
 {
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_MODIFY_HEAL_RECEIVED, script->ModifyHealReceived(target, healer, heal, spellInfo));
