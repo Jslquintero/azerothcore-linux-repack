@@ -472,13 +472,13 @@ def patch_undead_racials(data: bytearray, records_end: int, record_count: int, r
         40: 0,
         46: 12,
         71: 3,
-        74: 1,
+        74: 0,
         80: 0,
         92: 8,
         133: 146,
         205: 133,
         206: 1500,
-        214: 1,
+        214: 2,
         225: 1,
     }
     for field, value in cannibalize_fields.items():
@@ -493,9 +493,13 @@ def patch_undead_racials(data: bytearray, records_end: int, record_count: int, r
     for field in range(71, 131):
         set_u32(data, cannibalize_aura, field, 0)
     cannibalize_aura_fields = {
+        5: 536870976,
         28: 1,
+        33: 15374,
+        35: 101,
         40: 1,
         46: 1,
+        68: 0xFFFFFFFF,
         71: 6,
         72: 6,
         74: 1,
@@ -505,9 +509,10 @@ def patch_undead_racials(data: bytearray, records_end: int, record_count: int, r
         86: 1,
         87: 1,
         95: 20,
-        96: 24,
+        96: 21,
         98: 2000,
         99: 2000,
+        131: 5724,
         133: 146,
         225: 1,
     }

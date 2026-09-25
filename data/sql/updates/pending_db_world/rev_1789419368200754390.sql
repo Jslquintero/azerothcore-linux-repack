@@ -135,40 +135,23 @@ UPDATE `spell_dbc` SET
 `StartRecoveryTime` = 0
 WHERE `ID` = 7744;
 
-UPDATE `spell_dbc` SET
-`Attributes` = 16,
-`AttributesEx` = 131072,
-`AttributesEx2` = 524289,
-`RecoveryTime` = 120000,
-`DurationIndex` = 0,
-`Effect_1` = 3, `Effect_2` = 0, `Effect_3` = 0,
-`EffectDieSides_1` = 1,
-`EffectBasePoints_1` = 0,
-`EffectAura_1` = 0, `EffectAura_2` = 0, `EffectAura_3` = 0,
-`ImplicitTargetA_1` = 0, `ImplicitTargetA_2` = 0, `ImplicitTargetA_3` = 0,
-`EffectRadiusIndex_1` = 8,
-`SpellIconID` = 146,
-`Description_Lang_enUS` = CONCAT('When activated, regenerates 7% of total Health and Mana every 2 sec for 10 sec. ',
-'Only works on Humanoid or Undead corpses within 5 yds. Moving, taking action, or any damage taken while ',
-'Cannibalizing will cancel the effect.'),
-`AuraDescription_Lang_enUS` = '',
-`StartRecoveryCategory` = 133,
-`StartRecoveryTime` = 1500,
-`PreventionType` = 1
-WHERE `ID` = 20577;
+-- Keep the native corpse check and cast behavior; only the triggered aura gains mana regeneration.
+DELETE FROM `spell_dbc` WHERE `ID` = 20577;
 
-UPDATE `spell_dbc` SET
-`Effect_1` = 6, `Effect_2` = 6, `Effect_3` = 0,
-`EffectDieSides_1` = 1, `EffectDieSides_2` = 1,
-`EffectBasePoints_1` = 6, `EffectBasePoints_2` = 6,
-`EffectAura_1` = 20, `EffectAura_2` = 24, `EffectAura_3` = 0,
-`EffectAuraPeriod_1` = 2000, `EffectAuraPeriod_2` = 2000,
-`ImplicitTargetA_1` = 1, `ImplicitTargetA_2` = 1,
-`SpellIconID` = 146,
-`Name_Lang_enUS` = 'Cannibalize',
-`Description_Lang_enUS` = '',
-`AuraDescription_Lang_enUS` = 'Regenerating 7% of total Health and Mana every 2 sec.'
-WHERE `ID` = 20578;
+DELETE FROM `spell_dbc` WHERE `ID` = 20578;
+INSERT INTO `spell_dbc`
+(`ID`, `Attributes`, `AttributesEx`, `CastingTimeIndex`, `RecoveryTime`, `DurationIndex`, `PowerType`, `RangeIndex`,
+`SpellLevel`, `Effect_1`, `Effect_2`, `Effect_3`, `EffectDieSides_1`, `EffectDieSides_2`, `EffectDieSides_3`,
+`EffectBasePoints_1`, `EffectBasePoints_2`, `EffectBasePoints_3`, `EffectAura_1`, `EffectAura_2`, `EffectAura_3`,
+`EffectAuraPeriod_1`, `EffectAuraPeriod_2`, `EffectAuraPeriod_3`, `ImplicitTargetA_1`, `ImplicitTargetA_2`,
+`ImplicitTargetA_3`, `EffectMiscValue_1`, `EffectMiscValue_2`, `EffectMiscValue_3`, `EffectTriggerSpell_1`,
+`SpellIconID`, `Name_Lang_enUS`, `Description_Lang_enUS`, `AuraDescription_Lang_enUS`, `StartRecoveryCategory`,
+`StartRecoveryTime`, `PreventionType`, `SchoolMask`, `ChannelInterruptFlags`, `ProcChance`, `EquippedItemClass`,
+`SpellVisualID_1`, `EffectChainAmplitude_1`, `EffectChainAmplitude_2`,
+`EffectBonusMultiplier_2`, `EffectBonusMultiplier_3`) VALUES
+(20578, 0, 536870976, 1, 0, 1, 0, 1, 0, 6, 6, 0, 1, 1, 0, 6, 6, 0, 20, 21, 0, 2000, 2000, 0, 1, 1, 0, 0, 0, 0,
+0, 146, 'Cannibalize', '', 'Regenerating 7% of total Health and Mana every 2 sec.',
+0, 0, 0, 1, 15374, 101, -1, 5724, 1, 1, 1, 1);
 
 UPDATE `spell_dbc` SET
 `Effect_1` = 6,
