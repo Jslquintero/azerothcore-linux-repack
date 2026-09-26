@@ -1474,7 +1474,7 @@ def patch_skill_line_ability(path: Path):
             del data[offset:offset + record_size]
             record_count -= 1
             records_end -= record_size
-        elif (record[0] == 910030 and spell_id == 20600) or (record[3] == 1 and spell_id in {20599, 20864,
+        elif (record[0] in {20114, 910030} and spell_id == 20600) or (record[3] == 1 and spell_id in {20599, 20864,
             58985, 59752}):
             del data[offset:offset + record_size]
             record_count -= 1
@@ -1677,7 +1677,7 @@ def patch_skill_line_ability(path: Path):
         struct.pack_into("<14I", data, gnome_record, *fields)
 
     for ability_id, spell_id, found in (
-        (910030, 20600, perception_found),
+        (20114, 20600, perception_found),
         (910029, 910029, will_to_survive_found),
     ):
         if found:

@@ -150,6 +150,24 @@ Add only the active spell to server-side racial learning data:
 Existing characters may need the active spell taught manually or refreshed according to the project's racial
 migration process. The helper must remain internal.
 
+## Replacing A Stock Racial: Perception
+
+Human Perception uses active spell `20600`: 20 seconds (verified duration index `18`), a 180-second cooldown,
+and +51 stealth detection (`EffectBasePoints_1 = 50`, `EffectDieSides_1 = 1`). The server override is inserted
+by `rev_1790398432174993360.sql`; an UPDATE alone cannot override a spell absent from `spell_dbc`.
+
+The stock server `SkillLineAbility.dbc` teaches passive Perception (`58985`) through record `20114`.
+Deleting that row from SQL does not remove the underlying DBC record. Override **the same ID**, `20114`,
+to teach `20600`, and remove the redundant custom SQL record `910030`. The client generator uses `20114`
+as well. Humans learn the active on creation and when their racial skill is loaded at login.
+
+Human Diplomacy (`20599`), Mace Specialization (`20864`), and stock Will to Survive (`59752`) have the
+same fallback behavior. `rev_1790399673855342353.sql` overrides their original learning records (`11728`,
+`11861`, `20205`) with `AcquireMethod = 0` to disable automatic learning. Keep custom Will to Survive
+(`910029`) enabled. The client generator already excludes the three stock abilities from its racial skill
+line. The companion character migration `rev_1790399673916166607.sql` removes any explicitly saved copies,
+auras, and spell action buttons from humans; skill-granted spells are relearned from the corrected data at login.
+
 ## When C++ Is Needed
 
 Prefer native spell effects for triggering, timed auras, standard immunities, dispels, and damage modifiers. Add
