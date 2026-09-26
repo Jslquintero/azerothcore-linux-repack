@@ -168,6 +168,15 @@ same fallback behavior. `rev_1790399673855342353.sql` overrides their original l
 line. The companion character migration `rev_1790399673916166607.sql` removes any explicitly saved copies,
 auras, and spell action buttons from humans; skill-granted spells are relearned from the corrected data at login.
 
+### Dwarf Passive Duplicates
+
+Dwarf Big Game Hunter (`20595`) and Mace Specialization (`59224`) also retain stock server learning records.
+`rev_1790441558239148308.sql` disables records `11726` and `20143` with `AcquireMethod = 0`, preserving
+only custom passives `910020` and `910021`. The client generator already excludes the original learning records.
+`rev_1790441558365222755.sql` removes saved original spells, auras, and action buttons from existing dwarves
+(character race ID `3`, racial learning mask `4`). The custom mace passive grants 1% critical strike chance
+to spells and attacks only while a one-handed or two-handed mace is equipped, through `GetWeaponCritBonus`.
+
 ## When C++ Is Needed
 
 Prefer native spell effects for triggering, timed auras, standard immunities, dispels, and damage modifiers. Add
