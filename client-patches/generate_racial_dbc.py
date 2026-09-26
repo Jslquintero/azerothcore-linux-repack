@@ -196,6 +196,7 @@ def patch_tauren_racials(data: bytearray, records_end: int, record_count: int, r
     cultivation = find_record(data, record_count, record_size, 20552)
     cultivation_fields = {
         4: 16,
+        5: 0,
         28: 1,
         40: 0,
         46: 1,
@@ -271,10 +272,11 @@ def patch_tauren_racials(data: bytearray, records_end: int, record_count: int, r
 
     speed_fields = {
         4: 0,
-        5: 0x10000000,
+        5: 0,
         28: 1,
         40: 21,
         46: 1,
+        49: 30,
         68: 0xFFFFFFFF,
         71: 6,
         74: 1,

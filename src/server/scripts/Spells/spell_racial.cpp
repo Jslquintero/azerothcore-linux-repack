@@ -60,7 +60,8 @@ enum WowForeverRacialSpells : uint32
 namespace
 {
 constexpr float CULTIVATION_RANGE = 5.0f;
-constexpr uint32 CULTIVATION_DESPAWN_MS = 10 * MINUTE * IN_MILLISECONDS;
+constexpr uint32 CULTIVATION_DESPAWN_SECONDS = 10 * MINUTE;
+constexpr uint32 CULTIVATION_ENTRY_OFFSET = 1000000;
 constexpr uint32 PLAINSRUNNING_GAIN_TICK_MS = 5 * IN_MILLISECONDS;
 constexpr uint32 PLAINSRUNNING_DECAY_TICK_MS = IN_MILLISECONDS;
 constexpr uint8 PLAINSRUNNING_MAX_BONUS = 30;
@@ -306,7 +307,9 @@ GameObject* FindCultivationHerb(Player const* player)
     float nearestDistance = CULTIVATION_RANGE;
     for (GameObject* gameObject : gameObjects)
     {
-        if (!IsHerbalismNode(gameObject) || CultivatedHerbs.contains(gameObject->GetGUID()))
+        if (!IsHerbalismNode(gameObject) || !gameObject->isSpawned() || gameObject->getLootState() != GO_READY
+            || gameObject->GetOwnerGUID() || !player->IsWithinLOSInMap(gameObject)
+            || CultivatedHerbs.contains(gameObject->GetGUID()))
             continue;
 
         float distance = player->GetDistance(gameObject);
@@ -346,8 +349,12 @@ void ApplyPlainsrunning(Player* player, PlainsrunningState& state)
         return;
     }
 
-    player->RemoveAura(SPELL_WF_PLAINSRUNNING_SPEED);
-    player->CastCustomSpell(SPELL_WF_PLAINSRUNNING_SPEED, SPELLVALUE_BASE_POINT0, state.Bonus - 1, player, true);
+    Aura* aura = player->GetAura(SPELL_WF_PLAINSRUNNING_SPEED);
+    if (!aura)
+        aura = player->AddAura(SPELL_WF_PLAINSRUNNING_SPEED, player);
+
+    if (aura && aura->GetStackAmount() != state.Bonus)
+        aura->SetStackAmount(state.Bonus);
 }
 
 void DecayPlainsrunning(Player* player, uint8 amount)
@@ -571,9 +578,10 @@ class spell_wf_racial_cultivation : public SpellScript
             return;
 
         Position position = player->GetRandomNearPosition(3.0f);
-        GameObject* duplicate = player->SummonGameObject(herb->GetEntry(), position.GetPositionX(),
-            position.GetPositionY(), position.GetPositionZ(), position.GetOrientation(), 0.0f, 0.0f, 0.0f, 0.0f,
-            CULTIVATION_DESPAWN_MS);
+        GameObject* duplicate = player->SummonGameObject(herb->GetEntry() + CULTIVATION_ENTRY_OFFSET,
+            position.GetPositionX(), position.GetPositionY(), position.GetPositionZ(), position.GetOrientation(),
+            0.0f, 0.0f, 0.0f, 1.0f,
+            CULTIVATION_DESPAWN_SECONDS);
         if (!duplicate)
             return;
 

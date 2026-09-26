@@ -1,8 +1,8 @@
-# Custom Active Racials With Timed Auras
+# Custom Racial Spells
 
 This guide describes how to add a custom racial ability that has an instant cast, a cooldown, a visible timed
 buff, gameplay effects, and persistent character VFX in a WoW 3.3.5a client. Shatter Curse is the reference
-implementation:
+implementation for timed active racials:
 
 - Spell `910001` is the learned active ability and owns the 3-minute cooldown.
 - Spell `910002` is an internal 8-second aura and owns the gameplay effects, buff icon, countdown, and VFX.
@@ -10,6 +10,10 @@ implementation:
 The current SQL implementation is in
 `data/sql/updates/pending_db_world/rev_1789419368200754390.sql`. The generated client records are in
 `client-patches/DBFilesClient/Spell.dbc` and `client-patches/DBFilesClient/SkillLineAbility.dbc`.
+
+This guide also covers stacking passive racials (Plainsrunning) and scripted gathering abilities (Cultivation).
+Their C++ implementation is in `src/server/scripts/Spells/spell_racial.cpp`; client records are maintained by
+`client-patches/generate_racial_dbc.py`.
 
 ## Why Use Two Spells
 
@@ -143,6 +147,132 @@ loader, and rebuild the server. A source edit alone does not alter an already bu
 
 WoW 3.3.5a has `DISPEL_CURSE` but no native `DISPEL_BANE` category. A project-specific Bane system therefore needs
 an explicit definition and custom removal/immunity handling.
+
+## Stacking Movement Racials: Plainsrunning
+
+Separate the learned passive spell (`910013`) from the visible movement aura (`910016`). The passive grants
+access to the behavior; the internal aura carries the speed bonus and its client presentation. Teach only the
+passive spell and expose only that spell through `SkillLineAbility.dbc`.
+
+Represent each 1% increase as one stack. The server and client helper records must agree:
+
+| Server `spell_dbc` field | Value | Purpose |
+| --- | ---: | --- |
+| `Attributes` | `0` | The helper is visible and is not passive. |
+| `AttributesEx` | `0` | Clear `SPELL_ATTR1_NO_AURA_ICON` (`0x10000000`). |
+| `DurationIndex` | `21` | Indefinite aura; the script manages its lifetime. |
+| `CumulativeAura` | `30` | Maximum stack count; called `StackAmount` in C++ and DBC field 49. |
+| `Effect_1` | `6` | Apply aura. |
+| `EffectAura_1` | `31` | `SPELL_AURA_MOD_INCREASE_SPEED`. |
+| `EffectDieSides_1` | `1` | Adds one to the raw base points. |
+| `EffectBasePoints_1` | `0` | Evaluates to 1% per stack. |
+| `ImplicitTargetA_1` | `1` | Apply to self. |
+| `SpellIconID` | `2208` | Plainsrunning icon. |
+
+Set `AuraDescription_Lang_enUS` and the client aura description to `Movement speed increased by $s1%.`.
+Use the effect placeholder for the calculated bonus; a literal `1% per stack` does not display the current total.
+
+Maintain the aura and change its stack count instead of removing it and casting a custom amount every tick:
+
+```cpp
+if (!bonus)
+{
+    player->RemoveAura(SPELL_WF_PLAINSRUNNING_SPEED);
+    return;
+}
+
+Aura* aura = player->GetAura(SPELL_WF_PLAINSRUNNING_SPEED);
+if (!aura)
+    aura = player->AddAura(SPELL_WF_PLAINSRUNNING_SPEED, player);
+
+if (aura && aura->GetStackAmount() != bonus)
+    aura->SetStackAmount(bonus);
+```
+
+`SetStackAmount` recalculates the aura effects and schedules a client update. Keep `bonus` within 0–30.
+Do not subtract one when passing an evaluated amount to `CastCustomSpell`: its spell-value setter already
+converts the amount to raw base points. Confusing these representations previously made the first bonus zero.
+
+The current controller gains one stack every five seconds of eligible movement, caps at 30, and reduces stacks
+when standing still or taking damage. Keep eligibility checks, gain, decay, and aura removal consistent. Test
+running, stopping, damage, mounting, swimming, death, and relogging. Check both the displayed percentage and
+actual movement speed; another movement modifier can affect the final speed under the core's stacking rules.
+
+## Gathering Racials: Cultivation
+
+Cultivation (`20552`) replaces a stock passive with an active dummy spell. A stock spell may exist only in
+`Spell.dbc`, with no row in `spell_dbc`. An `UPDATE` against a missing row silently changes nothing. Use an
+idempotent `DELETE`/`INSERT` override and verify that the row exists after applying the migration.
+
+The active record needs `Attributes = 16`, `AttributesEx = 0`, instant casting, self targeting,
+`Effect_1 = 3` (`SPELL_EFFECT_DUMMY`), and no passive aura effects. Mirror this in the client DBC. Bind
+`spell_wf_racial_cultivation` in `spell_script_names`, and register its `OnEffectHitTarget` handler for
+`EFFECT_0` and `SPELL_EFFECT_DUMMY`. A log message saying the handler does not match the DBC effect means
+that the server is still loading the wrong spell definition; the clone handler will not run.
+
+### Find And Duplicate A Herb
+
+Search within five yards for a chest whose `Lock.dbc` requirements identify Herbalism. Require a spawned,
+ready, unowned object within line of sight, and reject an already cultivated source. Mark the source as used
+only after successfully creating the duplicate. The current implementation tracks source GUIDs in memory;
+this restriction is not persisted across server restarts.
+
+Summoning the original entry preserves its Herbalism requirement. Instead, create dedicated templates using
+`original entry + 1000000`, after checking for entry collisions. Preserve the source name, display ID, size,
+and `Data1` loot-table ID. Configure each duplicate as follows:
+
+| Template field | Value | Purpose |
+| --- | ---: | --- |
+| `type` | `3` | Chest with ordinary loot handling. |
+| `Data0` | `57` | Standard opening lock from this client's `Lock.dbc`; no profession or key required. |
+| `Data1` | Source value | Reuse the original herb's loot table. |
+| `Data3` | `1` | Consume the clone after looting. |
+| `Data4`, `Data5` | `1` | Single-use opening values. |
+| `castBarCaption` | `Cultivation` | Identify the custom templates for scoped updates. |
+
+Do not copy source events, traps, or profession restrictions. Do not set `Data0 = 0` to bypass Herbalism:
+`Spell::CheckCast` rejects an open-lock spell targeting a gameobject without a lock ID. That produces a
+visible clone which cannot be harvested. Lock 57 provides the ordinary opening path without a gathering skill.
+Verify the lock against the actual `Lock.dbc` before reusing this approach with different client data.
+
+Summon the duplicate near the player using its custom entry. The `SummonGameObject` lifetime parameter is in
+**seconds**: use `10 * MINUTE` for ten minutes, not a millisecond value. Use `getLootState()` with a lowercase
+`g` when checking a gameobject; `GetLootState()` is not an AzerothCore method.
+
+Test with a Tauren who has no Herbalism: cast near a herb, right-click the clone, collect its loot, and verify
+that the original herb remains intact. Confirm that the source cannot be cultivated again and that the clone
+cannot itself be cultivated. Test ordinary herbs with non-quest loot so quest eligibility does not mask results.
+
+The implementation is split across these pending world updates; apply them in order:
+
+1. `rev_1790306766218153738.sql`: active Cultivation override, clone templates, and stacking Plainsrunning aura.
+2. `rev_1790391100880558709.sql`: standard opening lock for the Cultivation clones.
+
+## Generate And Deploy All Parts
+
+Regenerate the client data with:
+
+```bash
+python client-patches/generate_racial_dbc.py
+```
+
+Keep `*.dbc binary` in `.gitattributes`. Text newline conversion can corrupt record boundaries and string offsets.
+Check the DBC header and file length, and verify the relevant spell records after generation and MPQ extraction.
+
+Apply the SQL, deploy the compiled C++ changes when needed, and restart worldserver to reload spell and
+object templates. Compilation alone does not replace an existing Docker container. After building the image,
+activate it with the project's Compose configuration, for example:
+
+```bash
+docker compose up -d --no-deps --no-build ac-worldserver
+```
+
+Check that the running container uses the new image and that startup no longer reports script/effect mismatches.
+Follow the repository's authorization rules before compiling, and coordinate restarts with connected players.
+
+Package the generated DBC files into the installed custom MPQ and fully restart WoW. If an existing gameobject
+entry changed, clear the client's `Cache` folder while WoW is closed so stale template data is not reused.
+A prepared MPQ outside the client's `Data` directory does not update the installed client.
 
 ## Apply And Test
 
