@@ -115,6 +115,20 @@ testing the active spell and cooldown.
 
 ## Client DBC Requirements
 
+### Rapid Regeneration Channel Visual
+
+Rapid Regeneration (`910017`) uses custom visual `910017`, cloned from Healing Touch visual `58`.
+Healing Touch has no channel kit, so assigning visual `58` alone only plays its one-shot cast animation.
+The custom visual clears `CastKit` and assigns `ChannelKit = 910017`. That kit clones Healing Touch's
+precast kit `100`, retaining the nature particles on both hands, with animation `125` (`ChannelCastOmni`).
+It does not borrow Tranquility's area impact effect or change the original Healing Touch spell.
+
+`generate_racial_dbc.py` also updates `SpellVisual.dbc` (32 fields) and `SpellVisualKit.dbc` (38 fields)
+using the 3.3.5a layouts. Include both files in the MPQ alongside `Spell.dbc` and `SkillLineAbility.dbc`.
+Deploy the matching `SpellVisual.dbc` to the server DBC directory before restarting worldserver.
+Apply `rev_1790397444294981424.sql` after the earlier Rapid Regeneration updates.
+Verify the channel animation for all six seconds and that movement or damage stops it immediately.
+
 Server SQL does not update the WoW client. Generate matching client records and package them into the custom MPQ:
 
 - `Spell.dbc` must contain both the active and helper spell records.

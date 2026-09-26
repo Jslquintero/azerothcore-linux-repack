@@ -37,6 +37,7 @@ enum WowForeverRacialSpells : uint32
 {
     SPELL_WF_SHATTER_CURSE        = 910001,
     SPELL_WF_BERSERKING           = 20554,
+    SPELL_DA_VOODOO_SHUFFLE       = 58943,
     SPELL_WF_CULTIVATION          = 20552,
     SPELL_WF_PLAINSRUNNING        = 910013,
     SPELL_WF_PLAINSRUNNING_SPEED  = 910016,
@@ -414,6 +415,14 @@ void LearnIfMissing(Player* player, uint32 spellId)
         player->learnSpell(spellId);
 }
 
+void RemoveIfKnown(Player* player, uint32 spellId)
+{
+    player->RemoveAura(spellId);
+
+    if (player->HasSpell(spellId))
+        player->removeSpell(spellId, SPEC_MASK_ALL, false);
+}
+
 void AddActionIfEmpty(Player* player, uint8 button, uint32 spellId)
 {
     if (!player->GetActionButton(button))
@@ -448,6 +457,7 @@ void EnsureRacials(Player* player)
             AddActionIfEmpty(player, 75, SPELL_WF_CULTIVATION);
             break;
         case RACE_TROLL:
+            RemoveIfKnown(player, SPELL_DA_VOODOO_SHUFFLE);
             LearnIfMissing(player, SPELL_WF_BERSERKING);
             LearnIfMissing(player, SPELL_WF_RAPID_REGENERATION);
             AddActionIfEmpty(player, 75, SPELL_WF_BERSERKING);

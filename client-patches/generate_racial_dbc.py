@@ -395,8 +395,10 @@ def patch_troll_racials(data: bytearray, records_end: int, record_count: int, re
 
     rapid_fields = {
         4: 65552,
+        5: 4,      # Channeled for the six-second regeneration duration.
         28: 1,
         29: 180000,
+        33: 15374, # Interrupt on damage, movement, casting, attacks and interactions; no pushback.
         40: 32,
         46: 1,
         68: 0xFFFFFFFF,
@@ -406,6 +408,8 @@ def patch_troll_racials(data: bytearray, records_end: int, record_count: int, re
         86: 1,
         95: 226,
         98: 1200,
+        131: 910017, # Healing Touch particles with a dedicated looping channel kit.
+        132: 0,
         133: 149,
         214: 1,
         225: 1,
@@ -1454,7 +1458,7 @@ def patch_skill_line_ability(path: Path):
             fields = list(record)
             fields[4] = 400
             struct.pack_into("<14I", data, offset, *fields)
-        elif spell_id == 26290 or (spell_id == 20554 and ability_id != 13418):
+        elif spell_id in {26290, 58943} or (spell_id == 20554 and ability_id != 13418):
             del data[offset:offset + record_size]
             record_count -= 1
             records_end -= record_size
@@ -1809,7 +1813,7 @@ def validate_skill_line_ability(path: Path):
         key = (record[1], record[3], spell_id)
         if key in expected:
             found.add(key)
-        if spell_id == 26290:
+        if spell_id in {26290, 58943}:
             forbidden_custom.add(spell_id)
         if record[3] == 16 and spell_id in {20579, 17737}:
             forbidden_custom.add(spell_id)
@@ -1837,18 +1841,38 @@ def validate_skill_line_ability(path: Path):
         raise ValueError(f"{path}: extra custom racial spells must not be exposed: {sorted(forbidden_custom)}")
 
 
+def patch_rapid_regeneration_visuals(dbc_dir: Path):
+    # WotLK 3.3.5a layouts: SpellVisual has 32 fields; SpellVisualKit has 38.
+    # Clone Healing Touch's precast kit, preserving its nature particles on both hands.
+    # Animation 125 is ChannelCastOmni, the loop used by self-channeled spells.
+    for name, field_count, source_id, fields in (
+        ("SpellVisualKit.dbc", 38, 100, {2: 125}),
+        ("SpellVisual.dbc", 32, 58, {2: 0, 6: 910017}),
+    ):
+        path = dbc_dir / name
+        data, record_count, record_size, records_end = read_wdbc(path, field_count, field_count * 4)
+        record, record_count, records_end = ensure_cloned_record(
+            data, record_count, record_size, records_end, source_id, 910017
+        )
+        for field, value in fields.items():
+            set_u32(data, record, field, value)
+        require_fields(data, record, 910017, fields)
+        path.write_bytes(data)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate synchronized WoW Forever racial DBC records.")
     parser.add_argument(
         "--dbc-dir",
         type=Path,
         default=Path(__file__).resolve().parent / "DBFilesClient",
-        help="Directory containing Spell.dbc and SkillLineAbility.dbc",
+        help="Directory containing Spell.dbc, SkillLineAbility.dbc, SpellVisual.dbc and SpellVisualKit.dbc",
     )
     args = parser.parse_args()
 
     spell_path = args.dbc_dir / "Spell.dbc"
     skill_line_path = args.dbc_dir / "SkillLineAbility.dbc"
+    patch_rapid_regeneration_visuals(args.dbc_dir)
     patch_spell_dbc(spell_path)
     patch_skill_line_ability(skill_line_path)
     validate_skill_line_ability(skill_line_path)
