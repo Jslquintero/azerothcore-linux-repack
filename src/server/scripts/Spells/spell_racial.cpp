@@ -18,6 +18,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Item.h"
+#include "Log.h"
 #include "Player.h"
 #include "PlayerScript.h"
 #include "Random.h"
@@ -28,6 +29,7 @@
 #include "SpellScriptLoader.h"
 #include "Unit.h"
 #include "UnitScript.h"
+#include "WorldPacket.h"
 #include <algorithm>
 #include <list>
 #include <unordered_map>
@@ -76,7 +78,6 @@ constexpr uint8 TOUCH_GRAVE_CASTER_CHANCE = 10;
 constexpr uint8 EXPANSIVE_MIND_RESOURCE_PCT = 5;
 constexpr uint8 EUREKA_OUTPUT_PCT = 10;
 constexpr uint8 EUREKA_CHARGES = 3;
-constexpr uint8 ELUNES_LIGHT_CRIT_PCT = 10;
 
 struct PlainsrunningState
 {
@@ -126,9 +127,6 @@ float GetWeaponCritBonus(Player const* player)
     if (player->getRace() == RACE_HUMAN && player->HasSpell(20597)
         && HasWeaponSubclass(player, ITEM_SUBCLASS_WEAPON_SWORD, ITEM_SUBCLASS_WEAPON_SWORD2))
         return 2.0f;
-
-    if (player->getRace() == RACE_NIGHTELF && player->HasAura(SPELL_WF_ELUNES_LIGHT))
-        return ELUNES_LIGHT_CRIT_PCT;
 
     return 0.0f;
 }
@@ -627,6 +625,77 @@ class spell_wf_racial_rapid_regeneration : public AuraScript
     }
 };
 
+// Shadowmeld starts its cooldown when the aura ends.
+class spell_wf_racial_shadowmeld_aura : public AuraScript
+{
+    PrepareAuraScript(spell_wf_racial_shadowmeld_aura);
+
+    bool _usedInCombat = false;
+
+    void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        LOG_DEBUG("server.racial.shadowmeld", "Shadowmeld remove: player={} combatCast={}",
+            GetTarget()->GetGUID().ToString(), _usedInCombat);
+        if (!_usedInCombat)
+            return;
+
+        // A positive SMSG_MODIFY_COOLDOWN shifts the client's start time into the future,
+        // leaving its duration at 10 seconds. Send a complete event cooldown for the sweep.
+        if (Player* player = GetTarget()->ToPlayer())
+        {
+            uint32 const cooldown = 2 * MINUTE * IN_MILLISECONDS;
+            player->RemoveSpellCooldown(20580, true);
+            player->AddSpellCooldown(20580, 0, cooldown, true);
+
+            WorldPacket data;
+            player->BuildCooldownPacket(data,
+                SPELL_COOLDOWN_FLAG_INCLUDE_GCD | SPELL_COOLDOWN_FLAG_INCLUDE_EVENT_COOLDOWNS, 20580, cooldown);
+            player->SendDirectMessage(&data);
+            LOG_DEBUG("server.racial.shadowmeld", "Shadowmeld extended: player={} remainingMs={}",
+                player->GetGUID().ToString(), player->GetSpellCooldownDelay(20580));
+        }
+    }
+
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(spell_wf_racial_shadowmeld_aura::HandleRemove, EFFECT_0,
+            SPELL_AURA_MOD_STEALTH, AURA_EFFECT_HANDLE_REAL);
+    }
+
+public:
+    void SetUsedInCombat(bool usedInCombat) { _usedInCombat = usedInCombat; }
+};
+
+class spell_wf_racial_shadowmeld : public SpellScript
+{
+    PrepareSpellScript(spell_wf_racial_shadowmeld);
+
+    bool _usedInCombat = false;
+
+    void HandleBeforeCast()
+    {
+        _usedInCombat = GetCaster()->IsInCombat();
+        LOG_DEBUG("server.racial.shadowmeld", "Shadowmeld cast: player={} combat={}",
+            GetCaster()->GetGUID().ToString(), _usedInCombat);
+    }
+
+    void HandleAfterHit()
+    {
+        if (Aura* aura = GetHitAura())
+            if (auto* script = aura->GetScript<spell_wf_racial_shadowmeld_aura>("spell_wf_racial_shadowmeld"))
+            {
+                script->SetUsedInCombat(_usedInCombat);
+                LOG_DEBUG("server.racial.shadowmeld", "Shadowmeld aura received combat={}", _usedInCombat);
+            }
+    }
+
+    void Register() override
+    {
+        BeforeCast += SpellCastFn(spell_wf_racial_shadowmeld::HandleBeforeCast);
+        AfterHit += SpellHitFn(spell_wf_racial_shadowmeld::HandleAfterHit);
+    }
+};
+
 class spell_wf_racial_stoneform : public SpellScript
 {
     PrepareSpellScript(spell_wf_racial_stoneform);
@@ -740,12 +809,6 @@ public:
         if (player->getRace() == RACE_TROLL && player->HasAura(SPELL_WF_RAPID_REGENERATION)
             && spellInfo->Id != SPELL_WF_RAPID_REGENERATION)
             CancelRapidRegeneration(player);
-
-        if (player->getRace() == RACE_NIGHTELF && spellInfo->Id == 20580 && player->IsInCombat())
-        {
-            player->RemoveSpellCooldown(20580, true);
-            player->AddSpellCooldown(20580, 0, 2 * MINUTE * IN_MILLISECONDS, true);
-        }
 
         if (player->getRace() != RACE_GNOME)
             return;
@@ -883,6 +946,7 @@ void AddSC_racial_spell_scripts()
     new spell_wf_racial_cultivation_loader();
     new spell_wf_racial_rapid_regeneration_loader();
     new spell_wf_racial_stoneform_loader();
+    RegisterSpellAndAuraScriptPair(spell_wf_racial_shadowmeld, spell_wf_racial_shadowmeld_aura);
     new spell_wf_racial_unit();
     new spell_wf_racial_player();
 }

@@ -1045,12 +1045,16 @@ def patch_night_elf_racials(data: bytearray, records_end: int, record_count: int
         data, record_count, record_size, records_end, 20585, 910032
     )
 
-    for record in (shadowmeld, elunes_light, wisp_speed):
+    elunes_aura, record_count, records_end = ensure_cloned_record(
+        data, record_count, record_size, records_end, 20582, 910036
+    )
+
+    for record in (shadowmeld, elunes_light, elunes_aura, wisp_speed):
         for field in range(71, 131):
             set_u32(data, record, field, 0)
 
     shadowmeld_fields = {
-        4: 1376272,
+        4: 34930704,  # Cooldown starts when the aura ends.
         5: 132112,
         6: 2621444,
         28: 1,
@@ -1132,31 +1136,42 @@ def patch_night_elf_racials(data: bytearray, records_end: int, record_count: int
     set_string(data, records_end, wisp, 170, "Transform into a wisp upon death, increasing movement speed by 75%.")
     require_fields(data, wisp, 20585, wisp_fields)
 
-    elune_fields = {
-        4: 16,
-        5: 0,
-        28: 1,
-        29: 180000,
-        40: 8,
-        46: 1,
-        68: 0xFFFFFFFF,
-        71: 6,
-        74: 1,
-        80: 9,
-        86: 1,
-        95: 4,
-        133: 1352,
-        214: 1,
-        225: 1,
-    }
-    for field, value in elune_fields.items():
-        set_u32(data, elunes_light, field, value)
-    set_string(data, records_end, elunes_light, 136, "Elune's Light")
-    set_string(data, records_end, elunes_light, 170, "Increases your critical strike chance with all spells and "
-        "attacks by 10% for 15 sec.")
-    set_string(data, records_end, elunes_light, 187, "Critical strike chance with all spells and attacks increased "
-        "by 10%.")
-    require_fields(data, elunes_light, 910031, elune_fields)
+    # MoonGlow is the reference icon; Starfall's state kit supplies persistent lunar VFX.
+    for record, spell_id, cooldown, duration, effect, aura, trigger, visual in (
+        (elunes_light, 910031, 180000, 0, 64, 0, 910036, 0),
+        (elunes_aura, 910036, 0, 8, 6, 290, 0, 11571),
+    ):
+        elune_fields = {
+            4: 16,
+            5: 32,  # Does not break stealth.
+            6: 16384,  # Allow while invisible.
+            28: 1,
+            29: cooldown,
+            30: 0,
+            40: duration,
+            46: 1,
+            68: 0xFFFFFFFF,
+            71: effect,
+            74: 1 if aura else 0,
+            80: 9 if aura else 0,
+            86: 1,
+            95: aura,
+            116: trigger,
+            131: visual,
+            133: 46,
+            204: 0,
+            205: 0,
+            214: 0,
+            225: 1,
+        }
+        for field, value in elune_fields.items():
+            set_u32(data, record, field, value)
+        set_string(data, records_end, record, 136, "Elune's Light")
+        set_string(data, records_end, record, 170, "Increases your critical strike chance with all spells and "
+            "attacks by 10% for 15 sec.")
+        set_string(data, records_end, record, 187,
+            "Critical strike chance with all spells and attacks increased by 10%." if aura else "")
+        require_fields(data, record, spell_id, elune_fields)
 
     wisp_speed_fields = {
         4: 0,
@@ -1565,6 +1580,7 @@ def patch_skill_line_ability(path: Path):
         if record[2] == 910029 and record[1] == 754 and record[3] == 1:
             will_to_survive_found = True
         if record[2] == 20580 and record[1] == 126 and record[3] == 8:
+            set_u32(data, offset, 0, 20207)
             shadowmeld_found = True
         if record[2] == 910031 and record[1] == 126 and record[3] == 8:
             elunes_light_found = True
@@ -1699,7 +1715,7 @@ def patch_skill_line_ability(path: Path):
         struct.pack_into("<14I", data, human_record, *fields)
 
     for ability_id, spell_id, found in (
-        (1259800, 20580, shadowmeld_found),
+        (20207, 20580, shadowmeld_found),
         (1259799, 910031, elunes_light_found),
     ):
         if found:
@@ -1831,7 +1847,7 @@ def validate_skill_line_ability(path: Path):
             forbidden_custom.add(spell_id)
         if 910031 <= spell_id <= 910032 and spell_id != 910031:
             forbidden_custom.add(spell_id)
-        if spell_id == 910034:
+        if spell_id in {910034, 910036}:
             forbidden_custom.add(spell_id)
 
     missing = expected - found

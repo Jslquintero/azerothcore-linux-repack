@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: Acore Racial Tooltips
+## Notes: Displays the conditional Shadowmeld cooldown in spell tooltips.
+## Version: 1.0.0
+## SavedVariablesPerCharacter: AcoreShadowmeldCombatCast
+AcoreRacialTooltips.lua

@@ -177,6 +177,32 @@ only custom passives `910020` and `910021`. The client generator already exclude
 (character race ID `3`, racial learning mask `4`). The custom mace passive grants 1% critical strike chance
 to spells and attacks only while a one-handed or two-handed mace is equipped, through `GetWeaponCritBonus`.
 
+### Night Elf Active Racials
+
+`rev_1790442113528840230.sql` overrides stock learning record `20207` to teach Shadowmeld (`20580`)
+instead of WotLK Shadowmeld (`58984`). The companion character update `rev_1790442251125315883.sql`
+replaces saved action buttons and removes the obsolete spell. Apply character migrations while players are offline.
+Shadowmeld has a 10-second cooldown starting when its aura ends. `spell_wf_racial_shadowmeld` records combat
+state in `BeforeCast` and passes it to the aura after the hit and extends that cooldown to 120 seconds only for casts made in combat.
+After the cooldown event, clear the base cooldown and send the full 120-second cooldown with
+`SPELL_COOLDOWN_FLAG_INCLUDE_GCD | SPELL_COOLDOWN_FLAG_INCLUDE_EVENT_COOLDOWNS`. Shadowmeld has no GCD.
+Do not extend it with a positive `ModifySpellCooldown`: the 3.3.5 client moves the 10-second timer's start
+110 seconds into the future instead of making its duration 120 seconds, breaking the action-button sweep.
+`AddSpellCooldown(..., true)` alone only saves the cooldown for the login packet.
+Verify client `GetSpellCooldown(20580)` and the action slot: after combat cancellation, duration must be
+120 seconds, enabled must be 1, and start time must be at cancellation rather than in the future.
+This requires rebuilding and deploying worldserver; the former cast hook ran too early to own the final cooldown.
+
+Elune's Light (`910031`) triggers internal aura `910036`, with a 180-second active cooldown. The aura uses
+native `SPELL_AURA_MOD_CRIT_PCT` (290), granting 10% spell, melee, and ranged critical strike chance for
+15 seconds (verified duration index `8`). It replaces the previous dummy aura and scripted crit bonus.
+Both records use MoonGlow icon `46`, matching the reference. The helper uses Starfall state visual `11571`,
+whose persistent kit is `10695`. Neither record breaks stealth. Only `910031` is learned.
+
+Verify Shadowmeld from both combat states, then cancel or move and check 10/120-second timers. Check that
+Elune's Light shows a 15-second buff and sustained lunar VFX, adds 10 percentage points to critical strike
+chance, restores the original values on expiry, and preserves Shadowmeld when activated while hidden.
+
 ## When C++ Is Needed
 
 Prefer native spell effects for triggering, timed auras, standard immunities, dispels, and damage modifiers. Add
