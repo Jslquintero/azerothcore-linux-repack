@@ -553,7 +553,7 @@ def patch_undead_racials(data: bytearray, records_end: int, record_count: int, r
         data, record_count, record_size, records_end, 5227, 910019
     )
     for record in (touch_melee, touch_caster):
-        for field in range(71, 131):
+        for field in range(50, 131):
             set_u32(data, record, field, 0)
 
     touch_common = {
@@ -562,23 +562,24 @@ def patch_undead_racials(data: bytearray, records_end: int, record_count: int, r
         40: 21,
         46: 1,
         68: 0xFFFFFFFF,
+        69: 0,
+        70: 0,
         71: 6,
         74: 1,
-        80: 4,
+        80: 5,
         86: 1,
         95: 4,
-        133: 61,
+        133: 76,
         225: 1,
     }
     for record, spell_id, chance in ((touch_melee, 910018, 5), (touch_caster, 910019, 10)):
         fields = dict(touch_common)
-        fields[54] = chance
+        fields[35] = chance
         for field, value in fields.items():
             set_u32(data, record, field, value)
         set_string(data, records_end, record, 136, "Touch of the Grave")
-        set_string(data, records_end, record, 170, "Your attacks and damaging spells have a chance to drain the "
-            "target, dealing up to 5% of your maximum Health in damage and healing you for the same amount. This "
-            "effect has a 1 sec cooldown.")
+        set_string(data, records_end, record, 170, f"Your spells and attacks have a {chance}% chance to drain "
+            "Health from the target, up to 5% of your maximum Health. This effect has a 1 sec cooldown.")
         set_string(data, records_end, record, 187, "")
         require_fields(data, record, spell_id, fields)
 

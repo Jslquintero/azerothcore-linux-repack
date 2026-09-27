@@ -2,6 +2,7 @@
 #include "Config.h"
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "SpellMgr.h"
 #include <set>         // Required for std::set             -- might be redundant
 #include <sstream>     // Required for std::istringstream   -- might be redundant
 #include <string>      // Required for std::string          -- might be redundant
@@ -77,8 +78,9 @@ public:
                 // Check if the spell is in the excluded list before learning it
                 if (excludedSpellIds.find(i) == excludedSpellIds.end())
                 {
-                    auto sSpell = sSpellStore.LookupEntry(i);
-                    if (sSpell->Effect[0] == SPELL_EFFECT_APPLY_AURA && sSpell->EffectApplyAuraName[0] == SPELL_AURA_MOUNTED)
+                    SpellInfo const* sSpell = sSpellMgr->GetSpellInfo(i);
+                    if (sSpell && sSpell->Effects[0].Effect == SPELL_EFFECT_APPLY_AURA
+                        && sSpell->Effects[0].ApplyAuraName == SPELL_AURA_MOUNTED)
                         pPlayer->learnSpell(sSpell->Id);
                 }
             }

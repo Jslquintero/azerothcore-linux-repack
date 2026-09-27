@@ -211,8 +211,11 @@ bool IsEurekaDamageSpell(Player const* player, SpellInfo const* spellInfo)
 
 bool IsEurekaHealSpell(Player const* player, SpellInfo const* spellInfo)
 {
+    if (!player || !spellInfo)
+        return false;
+
     EurekaInfo const* info = GetEurekaInfo(player);
-    if (!info || !info->AffectsHealing || !spellInfo || spellInfo->PowerType != info->Power)
+    if (!info || !info->AffectsHealing || spellInfo->PowerType != info->Power)
         return false;
 
     return spellInfo->HasEffect(SPELL_EFFECT_HEAL)
@@ -462,12 +465,25 @@ void EnsureRacials(Player* player)
             AddActionIfEmpty(player, 76, SPELL_WF_RAPID_REGENERATION);
             break;
         case RACE_UNDEAD_PLAYER:
+            RemoveIfKnown(player, SPELL_WF_RAPID_REGENERATION);
+
             if (player->getClass() == CLASS_WARRIOR || player->getClass() == CLASS_PALADIN
                 || player->getClass() == CLASS_ROGUE)
+            {
+                RemoveIfKnown(player, SPELL_WF_TOUCH_GRAVE_CASTER);
                 LearnIfMissing(player, SPELL_WF_TOUCH_GRAVE_MELEE);
+            }
             else if (player->getClass() == CLASS_PRIEST || player->getClass() == CLASS_MAGE
                 || player->getClass() == CLASS_WARLOCK)
+            {
+                RemoveIfKnown(player, SPELL_WF_TOUCH_GRAVE_MELEE);
                 LearnIfMissing(player, SPELL_WF_TOUCH_GRAVE_CASTER);
+            }
+            else
+            {
+                RemoveIfKnown(player, SPELL_WF_TOUCH_GRAVE_MELEE);
+                RemoveIfKnown(player, SPELL_WF_TOUCH_GRAVE_CASTER);
+            }
             break;
         case RACE_DWARF:
             LearnIfMissing(player, SPELL_WF_BIG_GAME_HUNTER);
