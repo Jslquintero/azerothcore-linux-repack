@@ -16,6 +16,7 @@
  */
 
 #include "AreaDefines.h"
+
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
@@ -28,6 +29,7 @@
 #include "Group.h"
 #include "Pet.h"
 #include "ReputationMgr.h"
+#include "Random.h"
 #include "SkillDiscovery.h"
 #include "SpellAuraEffects.h"
 #include "SpellScript.h"
@@ -36,6 +38,20 @@
 #include "Vehicle.h"
 #include <array>
 #include <cmath>
+
+namespace
+{
+float GnomeEngineeringFailureChance(Unit const* caster, float chance)
+{
+    return caster->HasAura(20593) ? chance * 0.8f : chance;
+}
+
+bool RollGnomeEngineeringFailure(Unit const* caster, float chance)
+{
+    return roll_chance_f(GnomeEngineeringFailureChance(caster, chance));
+}
+}
+
 /*
  * Scripts for spells with SPELLFAMILY_GENERIC which cannot be included in AI script file
  * of creature using it or can't be bound to any player class.
@@ -2769,6 +2785,9 @@ class spell_gen_gadgetzan_transporter_backfire : public SpellScript
     void HandleDummy(SpellEffIndex /* effIndex */)
     {
         Unit* caster = GetCaster();
+        if (!RollGnomeEngineeringFailure(caster, 100.0f))
+            return;
+
         int32 r = irand(0, 119);
         if (r < 20)                           // Transporter Malfunction - 1/6 polymorph
             caster->CastSpell(caster, SPELL_TRANSPORTER_MALFUNCTION_POLYMORPH, true);
@@ -2802,7 +2821,10 @@ class spell_gen_gnomish_transporter : public SpellScript
 
     void HandleDummy(SpellEffIndex /* effIndex */)
     {
-        GetCaster()->CastSpell(GetCaster(), roll_chance_i(50) ? SPELL_TRANSPORTER_SUCCESS : SPELL_TRANSPORTER_FAILURE, true);
+        Unit* caster = GetCaster();
+        uint32 spellId = RollGnomeEngineeringFailure(caster, 50.0f)
+            ? SPELL_TRANSPORTER_FAILURE : SPELL_TRANSPORTER_SUCCESS;
+        caster->CastSpell(caster, spellId, true);
     }
 
     void Register() override
@@ -4733,13 +4755,7 @@ class spell_gen_arcane_charge : public SpellScript
     }
 };
 
-// 20589 - Escape artist
 // 30918 - Improved Sprint
-enum WowForeverEscapeArtistSpells
-{
-    SPELL_WF_ESCAPE_ARTIST_AURA = 910003
-};
-
 class spell_gen_remove_impairing_auras : public SpellScript
 {
     PrepareSpellScript(spell_gen_remove_impairing_auras);
@@ -4748,9 +4764,6 @@ class spell_gen_remove_impairing_auras : public SpellScript
     {
         Unit* target = GetHitUnit();
         target->RemoveMovementImpairingAuras(true);
-
-        if (GetSpellInfo()->Id == 20589)
-            target->CastSpell(target, SPELL_WF_ESCAPE_ARTIST_AURA, true);
     }
 
     void Register() override

@@ -20,6 +20,7 @@
 #include "ObjectMgr.h"
 #include "Pet.h"
 #include "Player.h"
+#include "Random.h"
 #include "ScriptedCreature.h"
 #include "SkillDiscovery.h"
 #include "SpellAuraEffects.h"
@@ -27,6 +28,20 @@
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "WorldSession.h"
+
+namespace
+{
+float GnomeEngineeringFailureChance(Unit const* caster, float chance)
+{
+    return caster->HasAura(20593) ? chance * 0.8f : chance;
+}
+
+bool RollGnomeEngineeringFailure(Unit const* caster, float chance)
+{
+    return roll_chance_f(GnomeEngineeringFailureChance(caster, chance));
+}
+}
+
 /*
  * Scripts for spells with SPELLFAMILY_GENERIC spells used by items.
  * Ordered alphabetically using scriptname.
@@ -353,8 +368,8 @@ class spell_item_mind_amplify_dish : public SpellScript
         // 5% of the time - Backfire
         // 65% of the time - Successful Mind Control.
         // 30% of the time - Unsuccessful Mind Control.
-        int32 backfire = 5;
-        int32 failure = 30;
+        float backfire = 5.0f;
+        float failure = 30.0f;
 
         // Increased chance of failure when used against targets over level 60.
         bool isIncreasedChanceOfFailure = GetSpellInfo()->Id == SPELL_MIND_CONTROL_CAP && target->GetLevel() > 60;
@@ -364,7 +379,9 @@ class spell_item_mind_amplify_dish : public SpellScript
             failure = 45; // not verified
         }
 
-        int32 roll = irand(0, 99);
+        backfire = GnomeEngineeringFailureChance(caster, backfire);
+        failure = GnomeEngineeringFailureChance(caster, failure);
+        float roll = frand(0.0f, 100.0f);
         if (roll < backfire)
             target->CastSpell(caster, charmSpell, true, GetCastItem());
         else if (roll < backfire + failure)
@@ -993,7 +1010,7 @@ class spell_item_gnomish_shrink_ray : public SpellScript
         Unit* caster = GetCaster();
         if (Unit* target = GetHitUnit())
         {
-            if (urand(0, 99) < 15)
+            if (RollGnomeEngineeringFailure(caster, 15.0f))
                 caster->CastSpell(caster, SPELL_GNOMISH_SHRINK_RAY_SELF, true, nullptr);
             else
                 caster->CastSpell(target, SPELL_GNOMISH_SHRINK_RAY_TARGET, true, nullptr);
@@ -1726,7 +1743,7 @@ public:
 
     void HandleScript(SpellEffIndex effIndex)
     {
-        if (roll_chance_i(_chance))
+        if (RollGnomeEngineeringFailure(GetCaster(), _chance))
         {
             PreventHitDefaultEffect(effIndex);
             if (_failSpell)
@@ -2212,10 +2229,11 @@ class spell_item_net_o_matic : public SpellScript
         if (Unit* target = GetHitUnit())
         {
             uint32 spellId = SPELL_NET_O_MATIC_TRIGGERED3;
-            uint32 roll = urand(0, 99);
-            if (roll < 2)                            // 2% for 30 sec self root (off-like chance unknown)
+            float roll = frand(0.0f, 100.0f);
+            // Base chances: 2% self root, 2% root and charge (off-like chances unknown).
+            if (roll < GnomeEngineeringFailureChance(GetCaster(), 2.0f))
                 spellId = SPELL_NET_O_MATIC_TRIGGERED1;
-            else if (roll < 4)                       // 2% for 20 sec root, charge to target (off-like chance unknown)
+            else if (roll < GnomeEngineeringFailureChance(GetCaster(), 4.0f))
                 spellId = SPELL_NET_O_MATIC_TRIGGERED2;
 
             GetCaster()->CastSpell(target, spellId, true, nullptr);
@@ -2431,7 +2449,7 @@ class spell_item_dimensional_ripper_area52 : public SpellScript
 
     void HandleScript(SpellEffIndex /* effIndex */)
     {
-        if (!roll_chance_i(50)) // 50% success
+        if (!RollGnomeEngineeringFailure(GetCaster(), 50.0f))
             return;
 
         Unit* caster = GetCaster();
@@ -3143,7 +3161,7 @@ class spell_item_nigh_invulnerability : public SpellScript
         Unit* caster = GetCaster();
         if (Item* castItem = GetCastItem())
         {
-            if (roll_chance_i(86))                  // Nigh-Invulnerability   - success
+            if (!RollGnomeEngineeringFailure(caster, 14.0f)) // Nigh-Invulnerability
                 caster->CastSpell(caster, SPELL_NIGH_INVULNERABILITY, true, castItem);
             else                                    // Complete Vulnerability - backfire in 14% casts
                 caster->CastSpell(caster, SPELL_COMPLETE_VULNERABILITY, true, castItem);
@@ -3176,13 +3194,14 @@ class spell_item_poultryizer : public SpellScript
     {
         if (GetCastItem() && GetHitUnit())
         {
-            if (roll_chance_i(80))
-            {
-                GetCaster()->CastSpell(GetHitUnit(), roll_chance_i(80) ? SPELL_POULTRYIZER_SUCCESS_1 : SPELL_POULTRYIZER_SUCCESS_2, true, GetCastItem());
-            }
+            float roll = frand(0.0f, 100.0f);
+            if (roll < GnomeEngineeringFailureChance(GetCaster(), 20.0f))
+                GetCaster()->CastSpell(GetCaster(), SPELL_POULTRYIZER_BACKFIRE, true, GetCastItem());
             else
             {
-                GetCaster()->CastSpell(GetCaster(),  SPELL_POULTRYIZER_BACKFIRE, true, GetCastItem());
+                uint32 spellId = roll < GnomeEngineeringFailureChance(GetCaster(), 36.0f)
+                    ? SPELL_POULTRYIZER_SUCCESS_2 : SPELL_POULTRYIZER_SUCCESS_1;
+                GetCaster()->CastSpell(GetHitUnit(), spellId, true, GetCastItem());
             }
         }
     }
@@ -3483,7 +3502,9 @@ class spell_item_nitro_boots : public SpellScript
     void HandleDummy(SpellEffIndex /* effIndex */)
     {
         Unit* caster = GetCaster();
-        caster->CastSpell(caster, caster->GetMap()->IsDungeon() || roll_chance_i(95) ? SPELL_NITRO_BOOTS_SUCCESS : SPELL_NITRO_BOOTS_BACKFIRE, true, GetCastItem());
+        uint32 spellId = caster->GetMap()->IsDungeon() || !RollGnomeEngineeringFailure(caster, 5.0f)
+            ? SPELL_NITRO_BOOTS_SUCCESS : SPELL_NITRO_BOOTS_BACKFIRE;
+        caster->CastSpell(caster, spellId, true, GetCastItem());
     }
 
     void Register() override
@@ -3839,7 +3860,9 @@ class spell_item_goblin_bomb : public SpellScript
     {
         if (Unit* caster = GetCaster())
         {
-            caster->CastSpell(caster, roll_chance_i(95) ? SPELL_SUMMON_GOBLIN_BOMB : SPELL_MALFUNCTION_EXPLOSION, true, GetCastItem());
+            uint32 spellId = !RollGnomeEngineeringFailure(caster, 5.0f)
+                ? SPELL_SUMMON_GOBLIN_BOMB : SPELL_MALFUNCTION_EXPLOSION;
+            caster->CastSpell(caster, spellId, true, GetCastItem());
         }
     }
 
@@ -4825,7 +4848,7 @@ class spell_item_mind_control_cap : public SpellScript
         Unit* caster = GetCaster();
         if (Unit* target = GetHitUnit())
         {
-            if (roll_chance_i(95))
+            if (!RollGnomeEngineeringFailure(caster, 5.0f))
                 caster->CastSpell(target, roll_chance_i(50) ? 13181 : 13181, GetCastItem());
             else
                 target->CastSpell(caster, 13181, true);
@@ -4873,7 +4896,7 @@ class spell_item_ultrasafe_transporter : public SpellScript
     {
         Unit* caster = GetCaster();
         caster->CastSpell(caster, SPELL_TELEPORT_TOSHLEY_STATION, true);
-        if (roll_chance_i(5))
+        if (RollGnomeEngineeringFailure(caster, 5.0f))
             caster->CastSpell(caster, RAND(SPELL_TRANSPORTER_MALFUNCTION_SMALL, SPELL_TRANSPORTER_MALFUNCTION_BIG, SPELL_TRANSPORTER_EVIL_TWIN), true);
     }
 

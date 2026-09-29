@@ -15,6 +15,7 @@
 #include "CellImpl.h"
 #include "DBCStores.h"
 #include "GameObject.h"
+#include "GlobalScript.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "Item.h"
@@ -31,6 +32,8 @@
 #include "UnitScript.h"
 #include "WorldPacket.h"
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <list>
 #include <unordered_map>
 #include <unordered_set>
@@ -51,6 +54,7 @@ enum WowForeverRacialSpells : uint32
     SPELL_WF_STONEFORM_REDUCTION  = 910022,
     SPELL_WF_EXPANSIVE_MIND_RAGE  = 910023,
     SPELL_WF_EXPANSIVE_MIND_ENERGY = 910024,
+    SPELL_WF_EXPANSIVE_MIND_RUNIC_POWER = 910042,
     SPELL_WF_EUREKA_ROGUE         = 910025,
     SPELL_WF_EUREKA_WARRIOR       = 910026,
     SPELL_WF_EUREKA_WARLOCK       = 910027,
@@ -75,9 +79,6 @@ constexpr uint32 TOUCH_GRAVE_COOLDOWN_MS = IN_MILLISECONDS;
 constexpr uint8 TOUCH_GRAVE_DRAIN_PCT = 5;
 constexpr uint8 TOUCH_GRAVE_MELEE_CHANCE = 5;
 constexpr uint8 TOUCH_GRAVE_CASTER_CHANCE = 10;
-constexpr uint8 EXPANSIVE_MIND_RESOURCE_PCT = 5;
-constexpr uint8 EUREKA_OUTPUT_PCT = 10;
-constexpr uint8 EUREKA_CHARGES = 3;
 
 struct PlainsrunningState
 {
@@ -86,17 +87,16 @@ struct PlainsrunningState
     uint8 Bonus = 0;
 };
 
-struct EurekaInfo
+struct PendingEurekaCharge
 {
-    uint8 Class = 0;
-    Powers Power = POWER_MANA;
-    uint8 CostReduction = 0;
-    bool AffectsHealing = false;
+    uint32 AuraSpellId = 0;
+    uint32 CastSpellId = 0;
+    uint8 ChargesBeforeCast = 0;
 };
 
 std::unordered_map<ObjectGuid, PlainsrunningState> PlainsrunningStates;
+std::unordered_map<ObjectGuid, PendingEurekaCharge> PendingEurekaCharges;
 std::unordered_map<ObjectGuid, uint32> TouchOfGraveCooldowns;
-std::unordered_map<ObjectGuid, uint8> EurekaCharges;
 std::unordered_set<ObjectGuid> CultivatedHerbs;
 
 bool IsWeaponSubclass(Item const* item, uint32 subclass1, uint32 subclass2)
@@ -140,145 +140,6 @@ bool IsRemovableStoneformDebuff(AuraApplication const* aura)
     return spellInfo->Dispel == DISPEL_DISEASE
         || spellInfo->Dispel == DISPEL_POISON
         || (spellInfo->GetAllEffectsMechanicMask() & (1ULL << MECHANIC_BLEED));
-}
-
-bool IsGnomeEurekaSpell(uint32 spellId)
-{
-    return spellId == SPELL_WF_EUREKA_ROGUE
-        || spellId == SPELL_WF_EUREKA_WARRIOR
-        || spellId == SPELL_WF_EUREKA_WARLOCK
-        || spellId == SPELL_WF_EUREKA_PRIEST;
-}
-
-bool HasAuraEffect(SpellInfo const* spellInfo, AuraType auraType)
-{
-    if (!spellInfo)
-        return false;
-
-    for (SpellEffectInfo const& effect : spellInfo->Effects)
-        if (effect.ApplyAuraName == auraType)
-            return true;
-
-    return false;
-}
-
-EurekaInfo const* GetEurekaInfo(Player const* player)
-{
-    static EurekaInfo const Rogue = { CLASS_ROGUE, POWER_ENERGY, 20, false };
-    static EurekaInfo const Warrior = { CLASS_WARRIOR, POWER_RAGE, 40, false };
-    static EurekaInfo const Warlock = { CLASS_WARLOCK, POWER_MANA, 50, false };
-    static EurekaInfo const Priest = { CLASS_PRIEST, POWER_MANA, 15, true };
-
-    if (!player)
-        return nullptr;
-
-    if (player->HasAura(SPELL_WF_EUREKA_ROGUE))
-        return &Rogue;
-
-    if (player->HasAura(SPELL_WF_EUREKA_WARRIOR))
-        return &Warrior;
-
-    if (player->HasAura(SPELL_WF_EUREKA_WARLOCK))
-        return &Warlock;
-
-    if (player->HasAura(SPELL_WF_EUREKA_PRIEST))
-        return &Priest;
-
-    return nullptr;
-}
-
-bool IsEurekaDamageSpell(Player const* player, SpellInfo const* spellInfo)
-{
-    if (!player || !spellInfo || spellInfo->Id == 75 || IsGnomeEurekaSpell(spellInfo->Id))
-        return false;
-
-    EurekaInfo const* info = GetEurekaInfo(player);
-    if (!info || player->getClass() != info->Class)
-        return false;
-
-    if (spellInfo->PowerType != info->Power)
-        return false;
-
-    return spellInfo->HasEffect(SPELL_EFFECT_SCHOOL_DAMAGE)
-        || spellInfo->HasEffect(SPELL_EFFECT_WEAPON_DAMAGE)
-        || spellInfo->HasEffect(SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL)
-        || spellInfo->HasEffect(SPELL_EFFECT_NORMALIZED_WEAPON_DMG)
-        || spellInfo->HasEffect(SPELL_EFFECT_WEAPON_PERCENT_DAMAGE)
-        || HasAuraEffect(spellInfo, SPELL_AURA_PERIODIC_DAMAGE)
-        || HasAuraEffect(spellInfo, SPELL_AURA_PERIODIC_DAMAGE_PERCENT)
-        || HasAuraEffect(spellInfo, SPELL_AURA_PERIODIC_LEECH);
-}
-
-bool IsEurekaHealSpell(Player const* player, SpellInfo const* spellInfo)
-{
-    if (!player || !spellInfo)
-        return false;
-
-    EurekaInfo const* info = GetEurekaInfo(player);
-    if (!info || !info->AffectsHealing || spellInfo->PowerType != info->Power)
-        return false;
-
-    return spellInfo->HasEffect(SPELL_EFFECT_HEAL)
-        || spellInfo->HasEffect(SPELL_EFFECT_HEAL_MAX_HEALTH)
-        || HasAuraEffect(spellInfo, SPELL_AURA_PERIODIC_HEAL);
-}
-
-uint32 GetActiveEurekaSpell(Player const* player)
-{
-    if (!player)
-        return 0;
-
-    for (uint32 spellId : { SPELL_WF_EUREKA_ROGUE, SPELL_WF_EUREKA_WARRIOR, SPELL_WF_EUREKA_WARLOCK,
-        SPELL_WF_EUREKA_PRIEST })
-        if (player->HasAura(spellId))
-            return spellId;
-
-    return 0;
-}
-
-void SpendEurekaCharge(Player* player)
-{
-    if (!player)
-        return;
-
-    uint32 auraId = GetActiveEurekaSpell(player);
-    if (!auraId)
-    {
-        EurekaCharges.erase(player->GetGUID());
-        return;
-    }
-
-    uint8& charges = EurekaCharges[player->GetGUID()];
-    if (!charges)
-        charges = EUREKA_CHARGES;
-
-    --charges;
-    if (charges)
-        return;
-
-    EurekaCharges.erase(player->GetGUID());
-    player->RemoveAura(auraId);
-}
-
-bool ShouldSpendEurekaCharge(Player const* player, SpellInfo const* spellInfo)
-{
-    return IsEurekaDamageSpell(player, spellInfo) || IsEurekaHealSpell(player, spellInfo);
-}
-
-void ApplyEurekaDamageBonus(Player* player, SpellInfo const* spellInfo, uint32& damage)
-{
-    if (!damage || !IsEurekaDamageSpell(player, spellInfo))
-        return;
-
-    AddPct(damage, EUREKA_OUTPUT_PCT);
-}
-
-void ApplyEurekaHealBonus(Player* player, SpellInfo const* spellInfo, uint32& heal)
-{
-    if (!heal || !IsEurekaHealSpell(player, spellInfo))
-        return;
-
-    AddPct(heal, EUREKA_OUTPUT_PCT);
 }
 
 bool IsHerbalismNode(GameObject const* gameObject)
@@ -490,6 +351,20 @@ void EnsureRacials(Player* player)
             LearnIfMissing(player, SPELL_WF_MACE_SPECIALIZATION);
             break;
         case RACE_GNOME:
+            RemoveIfKnown(player, 20592);
+            LearnIfMissing(player, 20589);
+            LearnIfMissing(player, 20593);
+            if (player->getClass() != CLASS_WARRIOR)
+                RemoveIfKnown(player, SPELL_WF_EXPANSIVE_MIND_RAGE);
+            if (player->getClass() != CLASS_ROGUE)
+                RemoveIfKnown(player, SPELL_WF_EXPANSIVE_MIND_ENERGY);
+            if (player->getClass() == CLASS_PALADIN || player->getClass() == CLASS_HUNTER
+                || player->getClass() == CLASS_PRIEST || player->getClass() == CLASS_SHAMAN
+                || player->getClass() == CLASS_MAGE || player->getClass() == CLASS_WARLOCK
+                || player->getClass() == CLASS_DRUID)
+                LearnIfMissing(player, 20591);
+            else
+                RemoveIfKnown(player, 20591);
             if (player->getClass() == CLASS_WARRIOR)
             {
                 LearnIfMissing(player, SPELL_WF_EXPANSIVE_MIND_RAGE);
@@ -502,6 +377,8 @@ void EnsureRacials(Player* player)
                 LearnIfMissing(player, SPELL_WF_EUREKA_ROGUE);
                 AddActionIfEmpty(player, 75, SPELL_WF_EUREKA_ROGUE);
             }
+            else if (player->getClass() == CLASS_DEATH_KNIGHT)
+                LearnIfMissing(player, SPELL_WF_EXPANSIVE_MIND_RUNIC_POWER);
             else if (player->getClass() == CLASS_WARLOCK)
             {
                 LearnIfMissing(player, SPELL_WF_EUREKA_WARLOCK);
@@ -528,6 +405,146 @@ void EnsureRacials(Player* player)
     }
 }
 }
+
+namespace
+{
+bool IsEurekaAbility(SpellInfo const* spell, bool healing, uint8 depth = 0)
+{
+    if (!spell || spell->IsPassive() || depth > 3)
+        return false;
+
+    // These parent abilities deal their damage/healing through a class script.
+    uint32 firstRank = sSpellMgr->GetFirstSpellInChain(spell->Id);
+    if (firstRank == 5308 || firstRank == 47540)
+        return true;
+
+    for (SpellEffectInfo const& effect : spell->Effects)
+    {
+        switch (effect.Effect)
+        {
+            case SPELL_EFFECT_SCHOOL_DAMAGE:
+            case SPELL_EFFECT_WEAPON_DAMAGE:
+            case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
+            case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
+            case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
+            case SPELL_EFFECT_HEALTH_LEECH:
+            case SPELL_EFFECT_POWER_BURN:
+                return true;
+            case SPELL_EFFECT_HEAL:
+            case SPELL_EFFECT_HEAL_MAX_HEALTH:
+                if (healing)
+                    return true;
+                break;
+            default:
+                break;
+        }
+
+        switch (effect.ApplyAuraName)
+        {
+            case SPELL_AURA_PERIODIC_DAMAGE:
+            case SPELL_AURA_PERIODIC_DAMAGE_PERCENT:
+            case SPELL_AURA_PERIODIC_LEECH:
+                return true;
+            case SPELL_AURA_PERIODIC_HEAL:
+                if (healing)
+                    return true;
+                break;
+            default:
+                break;
+        }
+
+        // Includes Mutilate and channel parents, but excludes proc auras and weapon enchants.
+        if ((effect.Effect == SPELL_EFFECT_TRIGGER_SPELL
+            || effect.ApplyAuraName == SPELL_AURA_PERIODIC_TRIGGER_SPELL)
+            && IsEurekaAbility(sSpellMgr->GetSpellInfo(effect.TriggerSpell), healing, depth + 1))
+            return true;
+    }
+
+    return false;
+}
+
+uint32 GetEurekaAuraForCast(Player const* player, SpellInfo const* spell)
+{
+    if (!player || !spell || player->getRace() != RACE_GNOME)
+        return 0;
+
+    uint32 auraSpellId = 0;
+    uint32 family = 0;
+    Powers power = POWER_MANA;
+    switch (player->getClass())
+    {
+        case CLASS_ROGUE: auraSpellId = 910037; family = SPELLFAMILY_ROGUE; power = POWER_ENERGY; break;
+        case CLASS_WARRIOR: auraSpellId = 910038; family = SPELLFAMILY_WARRIOR; power = POWER_RAGE; break;
+        case CLASS_WARLOCK: auraSpellId = 910039; family = SPELLFAMILY_WARLOCK; power = POWER_MANA; break;
+        case CLASS_PRIEST: auraSpellId = 910040; family = SPELLFAMILY_PRIEST; power = POWER_MANA; break;
+        default: return 0;
+    }
+
+    if (spell->Id == auraSpellId || spell->PowerType != power
+        || spell->SpellFamilyName != family
+        || !IsEurekaAbility(spell, player->getClass() == CLASS_PRIEST))
+        return 0;
+
+    return auraSpellId;
+}
+}
+
+class gnome_eureka_modifiers : public GlobalScript
+{
+public:
+    gnome_eureka_modifiers() : GlobalScript("gnome_eureka_modifiers",
+        { GLOBALHOOK_ON_IS_AFFECTED_BY_SPELL_MOD_CHECK }) { }
+
+    bool OnIsAffectedBySpellModCheck(SpellInfo const* affectSpell, SpellInfo const* checkSpell,
+        SpellModifier const* mod) override
+    {
+        uint32 family;
+        Powers power;
+        switch (affectSpell->Id)
+        {
+            case 910037: family = SPELLFAMILY_ROGUE; power = POWER_ENERGY; break;
+            case 910038: family = SPELLFAMILY_WARRIOR; power = POWER_RAGE; break;
+            case 910039: family = SPELLFAMILY_WARLOCK; power = POWER_MANA; break;
+            case 910040: family = SPELLFAMILY_PRIEST; power = POWER_MANA; break;
+            default: return true;
+        }
+
+        // Returning false accepts the modifier; the private family sentinel rejects all others.
+        // Native charged spellmods snapshot DoTs/HoTs and consume once per completed cast, not per hit.
+        if (!mod->ownerAura || !mod->ownerAura->GetOwner()->IsPlayer())
+            return true;
+
+        return checkSpell->SpellFamilyName != family || checkSpell->PowerType != power
+            || !IsEurekaAbility(checkSpell, family == SPELLFAMILY_PRIEST);
+    }
+};
+
+class gnome_expansive_mind : public PlayerScript
+{
+public:
+    gnome_expansive_mind() : PlayerScript("gnome_expansive_mind",
+        { PLAYERHOOK_ON_AFTER_UPDATE_MAX_POWER }) { }
+
+    void OnPlayerAfterUpdateMaxPower(Player* player, Powers& power, float& value) override
+    {
+        if (player->getRace() != RACE_GNOME)
+            return;
+
+        uint32 spellId = power == POWER_MANA ? 20591 : power == POWER_RAGE ? SPELL_WF_EXPANSIVE_MIND_RAGE
+            : power == POWER_ENERGY ? SPELL_WF_EXPANSIVE_MIND_ENERGY
+            : power == POWER_RUNIC_POWER ? SPELL_WF_EXPANSIVE_MIND_RUNIC_POWER : 0;
+        if (!spellId || (!player->HasSpell(spellId) && !player->HasAura(spellId)))
+            return;
+
+        // The aura normally supplies this multiplier. Normalize it first so the racial remains exactly 5%
+        // when the passive aura is active, and still works for characters where the aura was not applied.
+        if (player->HasAura(spellId))
+            value /= 1.05f;
+
+        // 100 * 1.05f may otherwise truncate to 104 when SetMaxPower converts it to uint32.
+        value = std::nextafter(value * 1.05f, std::numeric_limits<float>::infinity());
+    }
+};
 
 class spell_wf_racial_blood_fury : public AuraScript
 {
@@ -734,9 +751,6 @@ class spell_wf_racial_unit : public UnitScript
 public:
     spell_wf_racial_unit() : UnitScript("spell_wf_racial_unit", true, {
         UNITHOOK_ON_DAMAGE,
-        UNITHOOK_MODIFY_PERIODIC_DAMAGE_AURAS_TICK,
-        UNITHOOK_MODIFY_SPELL_DAMAGE_TAKEN,
-        UNITHOOK_MODIFY_HEAL_RECEIVED,
         UNITHOOK_MODIFY_SPELL_CRIT_CHANCE,
         UNITHOOK_ON_BEFORE_ROLL_MELEE_OUTCOME_AGAINST
     }) { }
@@ -759,27 +773,6 @@ public:
             TryTouchOfGrave(player, victim);
     }
 
-    void ModifyPeriodicDamageAurasTick(Unit* /*target*/, Unit* attacker, uint32& damage,
-        SpellInfo const* spellInfo) override
-    {
-        ApplyEurekaDamageBonus(attacker ? attacker->ToPlayer() : nullptr, spellInfo, damage);
-    }
-
-    void ModifySpellDamageTaken(Unit* /*target*/, Unit* attacker, int32& damage, SpellInfo const* spellInfo) override
-    {
-        if (damage <= 0)
-            return;
-
-        uint32 positiveDamage = uint32(damage);
-        ApplyEurekaDamageBonus(attacker ? attacker->ToPlayer() : nullptr, spellInfo, positiveDamage);
-        damage = int32(positiveDamage);
-    }
-
-    void ModifyHealReceived(Unit* /*target*/, Unit* healer, uint32& heal, SpellInfo const* spellInfo) override
-    {
-        ApplyEurekaHealBonus(healer ? healer->ToPlayer() : nullptr, spellInfo, heal);
-    }
-
     void OnBeforeRollMeleeOutcomeAgainst(Unit const* attacker, Unit const* /*victim*/, WeaponAttackType /*attType*/,
         int32& /*attackerMaxSkillValueForLevel*/, int32& /*victimMaxSkillValueForLevel*/,
         int32& /*attackerWeaponSkill*/, int32& /*victimDefenseSkill*/, int32& critChance, int32& /*missChance*/,
@@ -800,6 +793,50 @@ public:
     }
 };
 
+class gnome_eureka_quest_marker : public UnitScript
+{
+public:
+    gnome_eureka_quest_marker() : UnitScript("gnome_eureka_quest_marker") { }
+
+    void OnAuraApply(Unit* unit, Aura* aura) override
+    {
+        if (!unit->IsPlayer() || unit->ToPlayer()->getRace() != RACE_GNOME || !IsEurekaAura(aura->GetId()))
+            return;
+
+        unit->SetNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
+        SendQuestMarkerStatus(unit, DIALOG_STATUS_AVAILABLE);
+    }
+
+    void OnAuraRemove(Unit* unit, AuraApplication* aurApp, AuraRemoveMode /*mode*/) override
+    {
+        Aura* aura = aurApp->GetBase();
+        if (!unit->IsPlayer() || unit->ToPlayer()->getRace() != RACE_GNOME || !IsEurekaAura(aura->GetId()))
+            return;
+
+        // Another class-specific Eureka aura may still be active after an aura replacement.
+        for (uint32 spellId : { 910037, 910038, 910039, 910040 })
+            if (spellId != aura->GetId() && unit->HasAura(spellId))
+                return;
+
+        unit->RemoveNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
+        SendQuestMarkerStatus(unit, DIALOG_STATUS_NONE);
+    }
+
+private:
+    static bool IsEurekaAura(uint32 spellId)
+    {
+        return spellId >= 910037 && spellId <= 910040;
+    }
+
+    static void SendQuestMarkerStatus(Unit* unit, uint8 status)
+    {
+        WorldPacket data(SMSG_QUESTGIVER_STATUS, 9);
+        data << unit->GetGUID();
+        data << status;
+        unit->SendMessageToSet(&data, true);
+    }
+};
+
 class spell_wf_racial_player : public PlayerScript
 {
 public:
@@ -807,8 +844,7 @@ public:
         PLAYERHOOK_ON_LOGIN,
         PLAYERHOOK_ON_SPELL_CAST,
         PLAYERHOOK_ON_UPDATE,
-        PLAYERHOOK_ON_LOGOUT,
-        PLAYERHOOK_ON_AFTER_UPDATE_MAX_POWER
+        PLAYERHOOK_ON_LOGOUT
     }) { }
 
     void OnPlayerLogin(Player* player) override
@@ -822,31 +858,34 @@ public:
             return;
 
         SpellInfo const* spellInfo = spell->GetSpellInfo();
+
+        if (!spell->IsTriggered())
+        {
+            uint32 auraSpellId = GetEurekaAuraForCast(player, spellInfo);
+            Aura* eurekaAura = auraSpellId ? player->GetAura(auraSpellId) : nullptr;
+            if (eurekaAura && eurekaAura->GetCharges())
+                PendingEurekaCharges[player->GetGUID()] = { auraSpellId, spellInfo->Id, eurekaAura->GetCharges() };
+        }
+
         if (player->getRace() == RACE_TROLL && player->HasAura(SPELL_WF_RAPID_REGENERATION)
             && spellInfo->Id != SPELL_WF_RAPID_REGENERATION)
             CancelRapidRegeneration(player);
-
-        if (player->getRace() != RACE_GNOME)
-            return;
-
-        if (IsGnomeEurekaSpell(spellInfo->Id))
-        {
-            EurekaCharges[player->GetGUID()] = EUREKA_CHARGES;
-            return;
-        }
-
-        if (!ShouldSpendEurekaCharge(player, spellInfo))
-            return;
-
-        if (EurekaInfo const* info = GetEurekaInfo(player))
-            if (int32 cost = spell->GetPowerCost())
-                player->ModifyPower(info->Power, CalculatePct(cost, info->CostReduction));
-
-        SpendEurekaCharge(player);
     }
 
     void OnPlayerUpdate(Player* player, uint32 diff) override
     {
+        if (auto pending = PendingEurekaCharges.find(player->GetGUID()); pending != PendingEurekaCharges.end())
+        {
+            Spell* channelSpell = player->GetCurrentSpell(CURRENT_CHANNELED_SPELL);
+            if (!channelSpell || channelSpell->GetSpellInfo()->Id != pending->second.CastSpellId)
+            {
+                Aura* eurekaAura = player->GetAura(pending->second.AuraSpellId);
+                if (eurekaAura && eurekaAura->GetCharges() == pending->second.ChargesBeforeCast)
+                    eurekaAura->DropCharge();
+                PendingEurekaCharges.erase(pending);
+            }
+        }
+
         if (auto itr = TouchOfGraveCooldowns.find(player->GetGUID()); itr != TouchOfGraveCooldowns.end())
         {
             if (itr->second <= diff)
@@ -897,18 +936,8 @@ public:
     void OnPlayerLogout(Player* player) override
     {
         PlainsrunningStates.erase(player->GetGUID());
+        PendingEurekaCharges.erase(player->GetGUID());
         TouchOfGraveCooldowns.erase(player->GetGUID());
-        EurekaCharges.erase(player->GetGUID());
-    }
-
-    void OnPlayerAfterUpdateMaxPower(Player* player, Powers& power, float& value) override
-    {
-        if (player->getRace() != RACE_GNOME)
-            return;
-
-        if ((power == POWER_RAGE && player->HasSpell(SPELL_WF_EXPANSIVE_MIND_RAGE))
-            || (power == POWER_ENERGY && player->HasSpell(SPELL_WF_EXPANSIVE_MIND_ENERGY)))
-            AddPct(value, EXPANSIVE_MIND_RESOURCE_PCT);
     }
 };
 
@@ -958,6 +987,9 @@ public:
 
 void AddSC_racial_spell_scripts()
 {
+    new gnome_eureka_modifiers();
+    new gnome_expansive_mind();
+    new gnome_eureka_quest_marker();
     new spell_wf_racial_blood_fury_loader();
     new spell_wf_racial_cultivation_loader();
     new spell_wf_racial_rapid_regeneration_loader();

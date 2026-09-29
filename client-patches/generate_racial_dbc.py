@@ -743,185 +743,74 @@ def patch_dwarf_racials(data: bytearray, records_end: int, record_count: int, re
     return record_count, records_end
 
 
-def patch_gnome_racials(data: bytearray, records_end: int, record_count: int, record_size: int):
-    escape_artist = find_record(data, record_count, record_size, 20589)
-    escape_fields = {
-        4: 32784,
-        5: 32768,
-        28: 1,
-        29: 120000,
-        40: 28,
-        46: 1,
-        68: 0xFFFFFFFF,
-        71: 6,
-        72: 6,
-        73: 0,
-        74: 1,
-        75: 1,
-        76: 0,
-        80: 10,
-        81: 10,
-        82: 0,
-        86: 1,
-        87: 1,
-        88: 0,
-        95: 77,
-        96: 77,
-        97: 0,
-        110: 7,
-        111: 11,
-        112: 0,
-        131: 1008,
-        133: 517,
-        205: 133,
-        206: 1500,
-        214: 2,
-        225: 1,
-    }
-    for field, value in escape_fields.items():
-        set_u32(data, escape_artist, field, value)
-    set_string(data, records_end, escape_artist, 170, "Instantly escape the effects of any movement impairing "
-        "effect and gain immunity to those effects for 3 sec.")
-    set_string(data, records_end, escape_artist, 187, "Immune to movement impairing effects.")
-    require_fields(data, escape_artist, 20589, escape_fields)
+def gnome_spell_definitions():
+    # SpellDuration.dbc: 27 = 3 seconds, 8 = 15 seconds, 21 = permanent.
+    common = {4: 16, 28: 1, 46: 1, 68: 0xFFFFFFFF, 86: 1, 225: 1}
+    definitions = {}
 
-    expansive_mana = find_record(data, record_count, record_size, 20591)
-    expansive_fields = {
-        4: 80,
-        28: 1,
-        40: 21,
-        46: 1,
-        68: 0xFFFFFFFF,
-        71: 6,
-        74: 1,
-        80: 4,
-        86: 1,
-        95: 137,
-        110: 3,
-        133: 1654,
-        225: 1,
-    }
-    for field, value in expansive_fields.items():
-        set_u32(data, expansive_mana, field, value)
-    set_string(data, records_end, expansive_mana, 170, "Maximum Mana increased by 5%.")
-    require_fields(data, expansive_mana, 20591, expansive_fields)
+    def add(spell_id, fields, name, description, aura_description=""):
+        definitions[spell_id] = (common | fields, {
+            136: name, 152: "Racial", 170: description, 187: aura_description,
+        })
 
-    engineering = find_record(data, record_count, record_size, 20593)
-    engineering_fields = {
-        4: 80,
-        28: 1,
-        40: 21,
-        46: 1,
-        68: 0xFFFFFFFF,
-        71: 6,
-        74: 1,
-        80: 20,
-        86: 1,
-        95: 4,
-        133: 353,
-        225: 1,
-    }
-    for field, value in engineering_fields.items():
-        set_u32(data, engineering, field, value)
-    set_string(data, records_end, engineering, 170, "Your gnomish ingenuity reduces the rate of engineering "
-        "devices failing or backfiring when you use them by 20%.")
-    require_fields(data, engineering, 20593, engineering_fields)
+    escape_description = ("Instantly escape the effects of any movement impairing effect and gain immunity "
+        "to those effects for 3 sec.")
+    add(20589, {29: 120000, 71: 64, 116: 910041, 133: 517, 205: 133, 206: 1500},
+        "Escape Artist", escape_description)
+    add(910041, {5: 32768, 40: 27, 71: 6, 72: 6, 74: 1, 75: 1, 80: 10, 81: 10,
+        87: 1, 95: 77, 96: 77, 110: 7, 111: 11, 131: 1008, 133: 517},
+        "Escape Artist", escape_description, "Immune to movement impairing effects.")
 
-    custom_sources = (
-        (20591, 910023),
-        (20591, 910024),
-        (20589, 910025),
-        (20589, 910026),
-        (20589, 910027),
-        (20589, 910028),
-    )
-    custom_records = {}
-    for source_id, spell_id in custom_sources:
-        custom_records[spell_id], record_count, records_end = ensure_cloned_record(
-            data, record_count, record_size, records_end, source_id, spell_id
-        )
-
-    for spell_id in custom_records:
-        for field in range(71, 131):
-            set_u32(data, custom_records[spell_id], field, 0)
-
-    for spell_id, description in (
-        (910023, "Maximum Rage increased by 5%."),
-        (910024, "Maximum Energy increased by 5%."),
+    for spell_id, power, resource in (
+        (20591, 0, "Mana"),
+        (910023, 1, "Rage"),
+        (910024, 3, "Energy"),
+        (910042, 6, "Runic Power"),
     ):
-        fields = {
-            4: 80,
-            28: 1,
-            40: 21,
-            46: 1,
-            68: 0xFFFFFFFF,
-            71: 6,
-            74: 1,
-            80: 4,
-            86: 1,
-            95: 4,
-            133: 1654,
-            225: 1,
-        }
-        record = custom_records[spell_id]
-        for field, value in fields.items():
-            set_u32(data, record, field, value)
-        set_string(data, records_end, record, 136, "Expansive Mind")
-        set_string(data, records_end, record, 170, description)
-        set_string(data, records_end, record, 187, "")
-        require_fields(data, record, spell_id, fields)
+        add(spell_id, {4: 80, 40: 21, 71: 6, 74: 1, 80: 4, 95: 132, 110: power, 133: 1654},
+            "Expansive Mind", f"Maximum {resource} increased by 5%.")
 
-    eureka_data = {
-        910025: (8, 20, 517, "Your next 3 damaging abilities have their Energy cost reduced by 20% and deal "
-            "10% more damage.", "Next damaging abilities cost 20% less Energy and deal 10% more damage."),
-        910026: (1, 40, 1321, "Your next 3 damaging abilities have their Rage cost reduced by 40% and deal "
-            "10% more damage.", "Next damaging abilities cost 40% less Rage and deal 10% more damage."),
-        910027: (256, 50, 144, "Your next 3 damaging abilities have their Mana cost reduced by 50% and deal "
-            "10% more damage.", "Next damaging abilities cost 50% less Mana and deal 10% more damage."),
-        910028: (16, 15, 1352, "Your next 3 damaging or healing abilities have their Mana cost reduced by 15% "
-            "and deal 10% more damage or healing.", "Next damaging or healing abilities cost 15% less Mana and "
-            "deal 10% more damage or healing."),
-    }
-    for spell_id, (_class_mask, cost_pct, icon_id, description, aura_description) in eureka_data.items():
-        fields = {
-            4: 16,
-            5: 0,
-            28: 1,
-            29: 120000,
-            40: 8,
-            46: 1,
-            54: 100,
-            68: 0xFFFFFFFF,
-            71: 6,
-            72: 6,
-            73: 6,
-            74: 1,
-            75: 1,
-            76: 1,
-            80: 0xFFFFFFFF - cost_pct,
-            81: 9,
-            82: 9,
-            86: 1,
-            87: 1,
-            88: 1,
-            95: 72,
-            96: 79,
-            97: 136,
-            110: 127,
-            111: 127,
-            112: 127,
-            133: icon_id,
-            205: 0,
-            206: 0,
-            214: 1,
-            225: 8,
-        }
-        record = custom_records[spell_id]
+    add(20593, {4: 80, 40: 21, 71: 6, 74: 1, 80: 19, 95: 4, 133: 353},
+        "Engineering Specialization", "Your gnomish ingenuity reduces the rate of engineering devices failing "
+        "or backfiring when you use them by 20%.")
+
+    for active, helper, resource, icon, healing in (
+        (910025, 910037, "Energy", 502, False),
+        (910026, 910038, "Rage", 502, False),
+        (910027, 910039, "Mana", 502, False),
+        (910028, 910040, "Mana", 502, True),
+    ):
+        kind = "damaging or healing" if healing else "damaging"
+        output = "damage or healing" if healing else "damage"
+        description = (f"Your next 3 {kind} abilities have their {resource} cost reduced by 10% and deal "
+            f"10% more {output}. Lasts 15 sec.")
+        add(active, {29: 120000, 71: 64, 116: helper, 133: icon, 225: 8}, "Eureka!", description)
+        # The global hook filters by class/resource and ability type. Populate each effect's real
+        # SpellClassMask so charged spellmods are tracked and consumed by the core after a cast.
+        add(helper, {2: 1, 40: 8, 54: 100, 55: 3, 71: 6, 72: 6, 73: 6,
+            74: 1, 75: 1, 76: 1, 80: 0xFFFFFFF5, 81: 9, 82: 9, 87: 1, 88: 1,
+            95: 108, 96: 108, 97: 108, 110: 14, 111: 0, 112: 22,
+            122: 0xFFFFFFFF, 123: 0xFFFFFFFF, 124: 0xFFFFFFFF,
+            125: 0xFFFFFFFF, 126: 0xFFFFFFFF, 127: 0xFFFFFFFF,
+            128: 0xFFFFFFFF, 129: 0xFFFFFFFF, 130: 0xFFFFFFFF,
+            131: 4370, 133: icon, 208: 0, 225: 8}, "Eureka!", description,
+            f"Next {kind} abilities cost 10% less {resource} and deal 10% more {output}.")
+
+    return definitions
+
+
+def patch_gnome_racials(data: bytearray, records_end: int, record_count: int, record_size: int):
+    for spell_id, (fields, strings) in gnome_spell_definitions().items():
+        record, record_count, records_end = ensure_cloned_record(
+            data, record_count, record_size, records_end, 20589, spell_id
+        )
+        # Fully replace inherited stock/previous custom fields, including localized stale tooltips.
+        data[record:record + record_size] = bytes(record_size)
+        set_u32(data, record, 0, spell_id)
         for field, value in fields.items():
             set_u32(data, record, field, value)
-        set_string(data, records_end, record, 136, "Eureka!")
-        set_string(data, records_end, record, 170, description)
-        set_string(data, records_end, record, 187, aura_description)
+        for field, value in strings.items():
+            set_string(data, records_end, record, field, value)
         require_fields(data, record, spell_id, fields)
 
     return record_count, records_end
@@ -1466,13 +1355,15 @@ def patch_skill_line_ability(path: Path):
         record = struct.unpack_from("<14I", data, offset)
         ability_id = record[0]
         spell_id = record[2]
-        if ability_id in {910002, 910016, 910034} or spell_id in {910002, 910016, 910034}:
+        if ability_id in {910002, 910016, 910034} or spell_id in {
+            910002, 910016, 910034, 910037, 910038, 910039, 910040, 910041
+        }:
             del data[offset:offset + record_size]
             record_count -= 1
             records_end -= record_size
-        elif record[3] == 64 and spell_id == 20591 and record[4] != 400:
+        elif record[3] == 64 and spell_id == 20591 and record[4] != 1494:
             fields = list(record)
-            fields[4] = 400
+            fields[4] = 1494
             struct.pack_into("<14I", data, offset, *fields)
         elif spell_id in {26290, 58943} or (spell_id == 20554 and ability_id != 13418):
             del data[offset:offset + record_size]
@@ -1576,7 +1467,8 @@ def patch_skill_line_ability(path: Path):
             big_game_found = True
         if record[2] == 910021 and record[1] == 101 and record[3] == 4:
             mace_specialization_found = True
-        if record[2] in {910023, 910024, 910025, 910026, 910027, 910028} and record[1] == 753 and record[3] == 64:
+        if record[2] in {910023, 910024, 910025, 910026, 910027, 910028, 910042} \
+            and record[1] == 753 and record[3] == 64:
             gnome_custom_found.add(record[2])
         if record[2] == 910029 and record[1] == 754 and record[3] == 1:
             will_to_survive_found = True
@@ -1670,6 +1562,7 @@ def patch_skill_line_ability(path: Path):
     for ability_id, spell_id, class_mask in (
         (910023, 910023, 1),
         (910024, 910024, 8),
+        (910042, 910042, 32),
         (910025, 910025, 8),
         (910026, 910026, 1),
         (910027, 910027, 256),
@@ -1796,6 +1689,7 @@ def validate_skill_line_ability(path: Path):
         (753, 64, 20593),
         (753, 64, 910023),
         (753, 64, 910024),
+        (753, 64, 910042),
         (753, 64, 910025),
         (753, 64, 910026),
         (753, 64, 910027),
@@ -1830,7 +1724,7 @@ def validate_skill_line_ability(path: Path):
         key = (record[1], record[3], spell_id)
         if key in expected:
             found.add(key)
-        if spell_id in {26290, 58943}:
+        if spell_id in {26290, 58943, 910037, 910038, 910039, 910040, 910041}:
             forbidden_custom.add(spell_id)
         if record[3] == 16 and spell_id in {20579, 17737}:
             forbidden_custom.add(spell_id)
@@ -1844,7 +1738,8 @@ def validate_skill_line_ability(path: Path):
             forbidden_custom.add(spell_id)
         if 910002 <= spell_id <= 910022 and spell_id not in {910013, 910017, 910018, 910019, 910020, 910021}:
             forbidden_custom.add(spell_id)
-        if 910023 <= spell_id <= 910028 and spell_id not in {910023, 910024, 910025, 910026, 910027, 910028}:
+        if (910023 <= spell_id <= 910028 and spell_id not in {910023, 910024, 910025, 910026, 910027, 910028}) \
+            or (spell_id == 910042 and key != (753, 64, 910042)):
             forbidden_custom.add(spell_id)
         if 910031 <= spell_id <= 910032 and spell_id != 910031:
             forbidden_custom.add(spell_id)
