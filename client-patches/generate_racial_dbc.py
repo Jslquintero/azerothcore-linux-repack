@@ -1258,14 +1258,21 @@ def patch_spell_dbc(path: Path):
         28: 1,
         29: 120000,
         40: 0,
+        42: 0,      # Material free: no power cost.
+        43: 0,
+        44: 0,
+        45: 0,
         46: 1,
+        50: 0,      # No totems or reagents inherited from the source spell.
+        51: 0,
+        **{field: 0 for field in range(52, 68)},
         68: 0xFFFFFFFF,
         71: 64,     # Trigger spell.
         86: 1,
         117: 910034,
         131: 0,
         132: 0,
-        133: 79,    # spell_holy_layonhands.
+        133: 220,   # spell_nature_cyclone.
         205: 133,
         206: 1500,
         214: 1,
@@ -1293,7 +1300,7 @@ def patch_spell_dbc(path: Path):
         95: 105,    # Feather fall.
         131: 6768,  # Levitate visual.
         132: 0,
-        133: 79,
+        133: 220,   # spell_nature_cyclone.
         205: 0,
         206: 0,
         214: 1,
@@ -1331,7 +1338,7 @@ def patch_spell_dbc(path: Path):
         97: 216,    # Spell haste.
         131: 0,
         132: 0,
-        133: 136,   # spell_nature_windfury.
+        133: 174,   # spell_nature_earthbind.
         205: 0,
         206: 0,
         214: 0,

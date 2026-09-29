@@ -42,11 +42,50 @@ def collect_files_from_directories(directories: list) -> list:
                     all_files.append(os.path.join(root, file))
     return all_files
 
-# Used to find changed or added files compared to master.
+# Use origin's default branch to find changed or added files.
 def get_changed_files() -> list:
-    subprocess.run(["git", "fetch", "origin", "master"], check=True)
+    remote_head = subprocess.run(
+        ["git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    remote_branch = remote_head.stdout.strip()
+
+    if remote_head.returncode != 0 or not remote_branch.startswith("origin/"):
+        upstream = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        remote_branch = upstream.stdout.strip()
+
+    if not remote_branch.startswith("origin/"):
+        raise RuntimeError("Could not determine origin's default branch")
+
+    tracking_ref = f"refs/remotes/{remote_branch}"
+    fetch = subprocess.run(
+        ["git", "fetch", "origin", remote_branch.removeprefix("origin/")],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    ref_exists = subprocess.run(
+        ["git", "show-ref", "--verify", "--quiet", tracking_ref],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if fetch.returncode != 0 and ref_exists.returncode != 0:
+        raise RuntimeError(
+            f"Could not fetch origin/{remote_branch.removeprefix('origin/')} "
+            "and no cached tracking reference is available"
+        )
+    if fetch.returncode != 0:
+        print(f"Warning: fetch failed; comparing against cached {remote_branch}")
+
     result = subprocess.run(
-        ["git", "diff", "--name-status", "origin/master"],
+        ["git", "diff", "--name-status", tracking_ref],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
