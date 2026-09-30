@@ -59,6 +59,7 @@ public:
         creators["party member almost full health"] = &TriggerContext::PartyMemberAlmostFullHealth;
 
         creators["generic boost"] = &TriggerContext::generic_boost;
+        creators["self cursed"] = &TriggerContext::self_cursed;
 
         creators["protect party member"] = &TriggerContext::protect_party_member;
 
@@ -361,6 +362,10 @@ private:
         return new PartyMemberAlmostFullHealthTrigger(botAI);
     }
     static Trigger* generic_boost(PlayerbotAI* botAI) { return new GenericBoostTrigger(botAI); }
+    static Trigger* self_cursed(PlayerbotAI* botAI)
+    {
+        return new NeedCureTrigger(botAI, "shatter curse", DISPEL_CURSE);
+    }
     static Trigger* PartyMemberCriticalHealth(PlayerbotAI* botAI)
     {
         return new PartyMemberCriticalHealthTrigger(botAI);

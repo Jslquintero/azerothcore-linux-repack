@@ -162,6 +162,9 @@ public:
         creators["war stomp"] = &ActionContext::war_stomp;
         creators["blood fury"] = &ActionContext::blood_fury;
         creators["berserking"] = &ActionContext::berserking;
+        creators["shatter curse"] = &ActionContext::shatter_curse;
+        creators["rapid regeneration"] = &ActionContext::rapid_regeneration;
+        creators["elune's light"] = &ActionContext::elunes_light;
         creators["use trinket"] = &ActionContext::use_trinket;
         creators["auto talents"] = &ActionContext::auto_talents;
         creators["auto share quest"] = &ActionContext::auto_share_quest;
@@ -355,6 +358,9 @@ private:
     static Action* war_stomp(PlayerbotAI* botAI) { return new CastWarStompAction(botAI); }
     static Action* blood_fury(PlayerbotAI* botAI) { return new CastBloodFuryAction(botAI); }
     static Action* berserking(PlayerbotAI* botAI) { return new CastBerserkingAction(botAI); }
+    static Action* shatter_curse(PlayerbotAI* botAI) { return new CastBuffSpellAction(botAI, "shatter curse"); }
+    static Action* rapid_regeneration(PlayerbotAI* botAI) { return new CastBuffSpellAction(botAI, "rapid regeneration"); }
+    static Action* elunes_light(PlayerbotAI* botAI) { return new CastBuffSpellAction(botAI, "elune's light"); }
     static Action* use_trinket(PlayerbotAI* botAI) { return new UseTrinketAction(botAI); }
     static Action* auto_talents(PlayerbotAI* botAI) { return new AutoSetTalentsAction(botAI); }
     static Action* auto_share_quest(PlayerbotAI* ai) { return new AutoShareQuestAction(ai); }
