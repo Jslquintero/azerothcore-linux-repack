@@ -77,6 +77,18 @@
 #include <cmath>
 #include <limits>
 
+namespace
+{
+bool IsProtectionWarrior(Unit* unit)
+{
+    if (!unit || !unit->IsPlayer())
+        return false;
+
+    Player* player = unit->ToPlayer();
+    return player->IsClass(CLASS_WARRIOR) && player->GetSpec() == TALENT_TREE_WARRIOR_PROTECTION;
+}
+}
+
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
     2.5f,                  // MOVE_WALK
@@ -502,6 +514,22 @@ Unit::~Unit()
 void Unit::Update(uint32 p_time)
 {
     sScriptMgr->OnUnitUpdate(this, p_time);
+
+    if (m_pendingWeaponSpeedRageTimer)
+    {
+        uint32 elapsed = std::min(p_time, m_pendingWeaponSpeedRageTimer);
+        float rage = m_pendingWeaponSpeedRage * elapsed / m_pendingWeaponSpeedRageTimer;
+        m_pendingWeaponSpeedRage -= rage;
+        m_pendingWeaponSpeedRageTimer -= elapsed;
+        m_weaponSpeedRageFraction += rage * 10.0f;
+
+        int32 ragePoints = int32(m_weaponSpeedRageFraction);
+        if (ragePoints > 0)
+        {
+            ModifyPower(POWER_RAGE, ragePoints);
+            m_weaponSpeedRageFraction -= ragePoints;
+        }
+    }
 
     // WARNING! Order of execution here is important, do not change.
     // Spells must be processed with event system BEFORE they go to _UpdateSpells.
@@ -1114,7 +1142,7 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
                     if (cleanDamage->hitOutCome == MELEE_HIT_CRIT)
                         weaponSpeedHitFactor *= 2;
 
-                    attacker->RewardRage(rage_damage, weaponSpeedHitFactor, true);
+                    attacker->RewardRage(rage_damage, weaponSpeedHitFactor, true, attacker->GetAttackTime(cleanDamage->attackType));
                     break;
                 }
             case RANGED_ATTACK:
@@ -1127,10 +1155,17 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
     if (!damage)
     {
         // Rage from absorbed damage
-        if (cleanDamage && cleanDamage->absorbed_damage)
+        bool protectionWarrior = IsProtectionWarrior(victim);
+        if (cleanDamage && (cleanDamage->absorbed_damage ||
+            (protectionWarrior && (cleanDamage->resisted_damage || cleanDamage->mitigated_damage))))
         {
             if (victim->HasActivePowerType(POWER_RAGE))
-                victim->RewardRage(cleanDamage->absorbed_damage, 0, false);
+            {
+                if (protectionWarrior)
+                    victim->RewardRage(cleanDamage->mitigated_damage + cleanDamage->absorbed_damage + cleanDamage->resisted_damage, 0, false);
+                else
+                    victim->RewardRage(cleanDamage->absorbed_damage, 0, false);
+            }
 
             if (attacker && attacker->HasActivePowerType(POWER_RAGE))
                 attacker->RewardRage(cleanDamage->absorbed_damage, 0, true);
@@ -1276,6 +1311,8 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
         if (attacker != victim && victim->HasActivePowerType(POWER_RAGE))
         {
             uint32 rageDamage = damage + (cleanDamage ? cleanDamage->absorbed_damage : 0);
+            if (IsProtectionWarrior(victim) && cleanDamage)
+                rageDamage += cleanDamage->mitigated_damage + cleanDamage->resisted_damage;
             victim->RewardRage(rageDamage, 0, false);
         }
 
@@ -1659,7 +1696,7 @@ void Unit::DealSpellDamage(SpellNonMeleeDamage* damageInfo, bool durabilityLoss,
     }
 
     // Call default DealDamage
-    CleanDamage cleanDamage(damageInfo->cleanDamage, damageInfo->absorb, BASE_ATTACK, MELEE_HIT_NORMAL);
+    CleanDamage cleanDamage(damageInfo->cleanDamage, damageInfo->absorb, BASE_ATTACK, MELEE_HIT_NORMAL, damageInfo->resist);
     Unit::DealDamage(this, victim, damageInfo->damage, &cleanDamage, SPELL_DIRECT_DAMAGE, SpellSchoolMask(damageInfo->schoolMask), spellProto, durabilityLoss, false, spell);
 }
 
@@ -2069,7 +2106,8 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
         }
 
         // Call default DealDamage
-        CleanDamage cleanDamage(damageInfo->cleanDamage, damageInfo->damages[i].absorb, damageInfo->attackType, damageInfo->hitOutCome);
+        CleanDamage cleanDamage(damageInfo->cleanDamage, damageInfo->damages[i].absorb, damageInfo->attackType,
+            damageInfo->hitOutCome, damageInfo->damages[i].resist);
         Unit::DealDamage(this, victim, damageInfo->damages[i].damage, &cleanDamage, DIRECT_DAMAGE, SpellSchoolMask(damageInfo->damages[i].damageSchoolMask), nullptr, durabilityLoss);
     }
 
@@ -2082,7 +2120,7 @@ void Unit::DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss)
             case OFF_ATTACK:
             {
                 uint32 weaponSpeedHitFactor = uint32(GetAttackTime(damageInfo->attackType) / 1000.0f * (damageInfo->attackType == BASE_ATTACK ? 3.5f : 1.75f));
-                RewardRage(damageInfo->cleanDamage, weaponSpeedHitFactor, true);
+                RewardRage(damageInfo->cleanDamage, weaponSpeedHitFactor, true, GetAttackTime(damageInfo->attackType));
                 break;
             }
             default:
@@ -16064,7 +16102,7 @@ void Unit::UpdateHeight(float newZ)
         GetVehicleKit()->RelocatePassengers();
 }
 
-void Unit::RewardRage(uint32 damage, uint32 weaponSpeedHitFactor, bool attacker)
+void Unit::RewardRage(uint32 damage, uint32 weaponSpeedHitFactor, bool attacker, uint32 weaponSpeedMs)
 {
     // Rage formulae https://wowwiki-archive.fandom.com/wiki/Rage#Formulae
     float addRage;
@@ -16081,7 +16119,20 @@ void Unit::RewardRage(uint32 damage, uint32 weaponSpeedHitFactor, bool attacker)
         float rageFromDamageDealt = damage / rageconversion * 7.5f;
         addRage = (rageFromDamageDealt + weaponSpeedHitFactor) / 2.0f;
         addRage = std::min(addRage, rageFromDamageDealt * 2.0f);
-        AddPct(addRage, GetTotalAuraModifier(SPELL_AURA_MOD_RAGE_FROM_DAMAGE_DEALT));
+
+        if (IsProtectionWarrior(this) && weaponSpeedHitFactor && weaponSpeedMs)
+        {
+            float damageRage = rageFromDamageDealt / 2.0f;
+            float weaponSpeedRage = std::max(0.0f, addRage - damageRage);
+            int32 rageModifier = GetTotalAuraModifier(SPELL_AURA_MOD_RAGE_FROM_DAMAGE_DEALT);
+            AddPct(weaponSpeedRage, rageModifier);
+            AddPct(damageRage, GetTotalAuraModifier(SPELL_AURA_MOD_RAGE_FROM_DAMAGE_DEALT));
+            addRage = damageRage;
+            m_pendingWeaponSpeedRage += weaponSpeedRage * sWorld->getRate(RATE_POWER_RAGE_INCOME);
+            m_pendingWeaponSpeedRageTimer = std::max(m_pendingWeaponSpeedRageTimer, weaponSpeedMs);
+        }
+        else
+            AddPct(addRage, GetTotalAuraModifier(SPELL_AURA_MOD_RAGE_FROM_DAMAGE_DEALT));
     }
     else
     {

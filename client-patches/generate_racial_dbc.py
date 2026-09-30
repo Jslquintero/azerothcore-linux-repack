@@ -1090,6 +1090,14 @@ def patch_night_elf_racials(data: bytearray, records_end: int, record_count: int
 def patch_spell_dbc(path: Path):
     data, record_count, record_size, records_end = read_wdbc(path, SPELL_FIELD_COUNT, SPELL_RECORD_SIZE)
 
+    # Spell.dbc has no specialization-specific stance field. Let the client offer Charge in any stance;
+    # Spell::CheckCast keeps the exception limited to Protection warriors on the server.
+    charge_fields = {12: 0}  # Stances.
+    for spell_id in (100, 6178, 11578):
+        charge = find_record(data, record_count, record_size, spell_id)
+        set_u32(data, charge, 12, charge_fields[12])
+        require_fields(data, charge, spell_id, charge_fields)
+
     for spell_id in range(910003, 910036):
         if spell_id not in {910013, 910016, 910017, 910018, 910019, 910020, 910021, 910022, 910023, 910024,
             910025, 910026, 910027, 910028, 910029, 910031, 910032, 910033, 910034, 910035}:

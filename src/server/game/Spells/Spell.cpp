@@ -5763,7 +5763,18 @@ SpellCastResult Spell::CheckCast(bool strict, uint32* /*param1*/, uint32* /*para
         if (checkForm)
         {
             // Cannot be used in this stance/form
-            SpellCastResult shapeError = m_spellInfo->CheckShapeshift(m_caster->GetShapeshiftForm());
+            bool protectionWarriorCharge = m_spellInfo->Id == 100 || m_spellInfo->Id == 6178 || m_spellInfo->Id == 11578;
+            if (protectionWarriorCharge && m_caster->IsPlayer())
+            {
+                Player* playerCaster = m_caster->ToPlayer();
+                protectionWarriorCharge = playerCaster->IsClass(CLASS_WARRIOR) &&
+                    playerCaster->GetSpec() == TALENT_TREE_WARRIOR_PROTECTION;
+            }
+            else
+                protectionWarriorCharge = false;
+
+            SpellCastResult shapeError = protectionWarriorCharge ? SPELL_CAST_OK :
+                m_spellInfo->CheckShapeshift(m_caster->GetShapeshiftForm());
             if (shapeError != SPELL_CAST_OK)
                 return shapeError;
 

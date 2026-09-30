@@ -320,11 +320,12 @@ private:
 
 struct CleanDamage
 {
-    CleanDamage(uint32 mitigated, uint32 absorbed, WeaponAttackType _attackType, MeleeHitOutcome _hitOutCome) :
-        absorbed_damage(absorbed), mitigated_damage(mitigated), attackType(_attackType), hitOutCome(_hitOutCome) {}
+    CleanDamage(uint32 mitigated, uint32 absorbed, WeaponAttackType _attackType, MeleeHitOutcome _hitOutCome, uint32 resisted = 0) :
+        absorbed_damage(absorbed), mitigated_damage(mitigated), resisted_damage(resisted), attackType(_attackType), hitOutCome(_hitOutCome) {}
 
     uint32 absorbed_damage;
     uint32 mitigated_damage;
+    uint32 resisted_damage;
 
     WeaponAttackType attackType;
     MeleeHitOutcome hitOutCome;
@@ -1144,7 +1145,7 @@ public:
 
     int32 ModifyPower(Powers power, int32 val, bool withPowerUpdate = true);
 
-    void RewardRage(uint32 damage, uint32 weaponSpeedHitFactor, bool attacker);
+    void RewardRage(uint32 damage, uint32 weaponSpeedHitFactor, bool attacker, uint32 weaponSpeedMs = 0);
 
     [[nodiscard]] uint32 GetCreateMana() const { return GetUInt32Value(UNIT_FIELD_BASE_MANA); }
     void SetCreateMana(uint32 val) { SetUInt32Value(UNIT_FIELD_BASE_MANA, val); }
@@ -2194,6 +2195,9 @@ protected:
 
     uint32 m_reactiveTimer[MAX_REACTIVE];
     int32 m_regenTimer;
+    float m_pendingWeaponSpeedRage = 0.0f;
+    float m_weaponSpeedRageFraction = 0.0f;
+    uint32 m_pendingWeaponSpeedRageTimer = 0;
 
     ThreatManager m_threatManager;
     CombatManager m_combatManager;
