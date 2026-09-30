@@ -30,7 +30,7 @@ services:
       ###########################################################################
       AC_AI_PLAYERBOT_ENABLED: "1"
       AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: "1"
-      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "200"
+      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: "1000"
       AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: "2000"
       AC_AI_PLAYERBOT_RANDOM_BOT_ACCOUNT_COUNT: "0"
       AC_AI_PLAYERBOT_DISABLED_WITHOUT_REAL_PLAYER: "0"
