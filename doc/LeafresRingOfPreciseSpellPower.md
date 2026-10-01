@@ -40,6 +40,28 @@ display ID `31664` with inventory icon `INV_Jewelry_Ring_38` (Wowhead icon 13338
 For the icon to appear in game, package the generated file into the client's custom MPQ with the internal path
 `DBFilesClient/Item.dbc`, then fully restart the WoW client. Server SQL cannot update a player's client files.
 
+## Leafre's Ring of Great Resistance
+
+Item `274978` follows the same server DBC, item template, and fishing loot setup. The Wowhead page lists item
+level 1, bind-on-pickup, the finger slot, and +150 Arcane, Fire, Nature, Frost, and Shadow Resistance. The pending
+world update sets required level 1 and the same 0.05 percent chance in every fishing loot table.
+
+The client record uses display ID `31657` (`INV_Jewelry_Ring_39`), which is present in the 3.3.5a
+`ItemDisplayInfo.dbc`. This icon was selected from the ring icons available in the base DBC because Wowhead's
+text view does not expose this item's direct icon URL; replace display `31657` in the SQL and generator if the
+visual icon should differ.
+
+## Leafre's Ring of Armor Piercing
+
+Item `285326` is rare, item level 1, requires level 1, and grants 50 armor penetration. Its Wowhead page shows
+no binding requirement and a sell price of 2, so the item is configured without binding. The world update adds
+it at a 0.05 percent chance to every distinct positive fishing loot entry.
+
+Wowhead's item page identifies its icon as `inv_11xp_generic_blizzardphoenixring01`, which is not present in
+the standard 3.3.5a `ItemDisplayInfo.dbc`. The client record currently uses the available ring icon
+`INV_Jewelry_Ring_39` (display ID `31657`) so the item has a valid icon in the 3.3.5a client. The custom
+Forever icon requires adding its texture to the client patch separately.
+
 ## Verification
 
 The server database can be checked with:

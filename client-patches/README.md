@@ -1,9 +1,14 @@
 # Client patches
 
-## Leafre's Ring of Precise Spell Power
+## Leafre fishing rings
 
-The server update registers item `276765` with `Item.dbc` display `31664`, whose existing
-`ItemDisplayInfo.dbc` record uses the `INV_Jewelry_Ring_38` icon.
+The server updates register these rings:
+
+- Item `276765` uses display `31664` and icon `INV_Jewelry_Ring_38`.
+- Item `274978` uses display `31657` and icon `INV_Jewelry_Ring_39`.
+- Item `285326` uses display `31657` and icon `INV_Jewelry_Ring_39`.
+
+Both icons exist in the standard 3.3.5a `ItemDisplayInfo.dbc`.
 
 To recreate the client record from an original WoW 3.3.5a `Item.dbc`:
 
