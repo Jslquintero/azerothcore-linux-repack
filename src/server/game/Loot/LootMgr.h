@@ -70,7 +70,8 @@ enum PermissionTypes
     RESTRICTED_PERMISSION               = 3,
     ROUND_ROBIN_PERMISSION              = 4,
     OWNER_PERMISSION                    = 5,
-    NONE_PERMISSION                     = 6
+    NONE_PERMISSION                     = 6,
+    QUEST_PERMISSION                    = 7
 };
 
 enum LootType
@@ -385,6 +386,8 @@ struct Loot
     bool hasItemFor(Player* player) const;
     [[nodiscard]] bool hasOverThresholdItem() const;
     void FillNotNormalLootFor(Player* player);
+    void FillQuestLootFor(Player* player, uint32 lootId, LootStore const& store, uint16 lootMode,
+        WorldObject* lootSource);
 
 private:
     QuestItemList* FillFFALoot(Player* player);

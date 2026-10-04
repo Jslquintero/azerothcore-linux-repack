@@ -630,6 +630,44 @@ void Loot::FillNotNormalLootFor(Player* player)
     }
 }
 
+void Loot::FillQuestLootFor(Player* player, uint32 lootId, LootStore const& store, uint16 lootMode,
+    WorldObject* lootSource)
+{
+    if (PlayerQuestItems.contains(player->GetGUID()))
+        return;
+
+    Loot personalLoot;
+    if (lootSource)
+        personalLoot.sourceWorldObjectGUID = lootSource->GetGUID();
+
+    if (!personalLoot.FillLoot(lootId, store, player, true, true, lootMode, lootSource))
+        return;
+
+    QuestItemMap::const_iterator playerItems = personalLoot.PlayerQuestItems.find(player->GetGUID());
+    if (playerItems == personalLoot.PlayerQuestItems.end())
+        return;
+
+    QuestItemList* questItems = new QuestItemList();
+    for (QuestItem const& questItem : *playerItems->second)
+    {
+        if (questItem.index >= personalLoot.quest_items.size() || quest_items.size() >= MAX_NR_QUEST_ITEMS)
+            break;
+
+        uint8 index = uint8(quest_items.size());
+        quest_items.push_back(personalLoot.quest_items[questItem.index]);
+        questItems->push_back(QuestItem(index));
+        ++unlootedCount;
+    }
+
+    if (questItems->empty())
+    {
+        delete questItems;
+        return;
+    }
+
+    PlayerQuestItems[player->GetGUID()] = questItems;
+}
+
 QuestItemList* Loot::FillFFALoot(Player* player)
 {
     QuestItemList* ql = new QuestItemList();
@@ -984,7 +1022,7 @@ ByteBuffer& operator<<(ByteBuffer& b, LootView const& lv)
 
     uint8 itemsShown = 0;
 
-    b << uint32(l.gold);                                    //gold
+    b << uint32(lv.permission == QUEST_PERMISSION ? 0 : l.gold); //gold
 
     std::size_t count_pos = b.wpos();                            // pos of item count byte
     b << uint8(0);                                          // item count placeholder
@@ -1087,6 +1125,8 @@ ByteBuffer& operator<<(ByteBuffer& b, LootView const& lv)
                 }
                 break;
             }
+        case QUEST_PERMISSION:
+            break;
         default:
             return b;
     }

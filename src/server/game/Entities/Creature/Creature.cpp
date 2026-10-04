@@ -336,6 +336,9 @@ void Creature::AddToWorld()
 
 void Creature::RemoveFromWorld()
 {
+    m_questContributionByPlayer.clear();
+    m_questLootParticipants.clear();
+
     if (IsInWorld())
     {
         sScriptMgr->OnCreatureRemoveWorld(this);
@@ -419,6 +422,9 @@ void Creature::RemoveCorpse(bool setSpawnTime, bool skipVisibility)
 {
     if (getDeathState() != DeathState::Corpse)
         return;
+
+    m_questContributionByPlayer.clear();
+    m_questLootParticipants.clear();
 
     if (_respawnCompatibilityMode)
     {
@@ -1362,6 +1368,42 @@ void Creature::SetLootRecipient(Unit* unit, bool withGroup)
         m_lootRecipientGroup = 0;
 
     SetDynamicFlag(UNIT_DYNFLAG_TAPPED);
+}
+
+void Creature::RecordQuestContribution(Player* player, uint32 damage)
+{
+    if (!player || !damage || player->GetMap() != GetMap())
+        return;
+
+    uint32& contribution = m_questContributionByPlayer[player->GetGUID()];
+    contribution = std::min<uint32>(GetMaxHealth(), contribution + std::min(damage, GetMaxHealth() - contribution));
+}
+
+bool Creature::IsQuestContributor(ObjectGuid playerGuid) const
+{
+    auto itr = m_questContributionByPlayer.find(playerGuid);
+    return itr != m_questContributionByPlayer.end() && itr->second >= std::max<uint32>(1, GetMaxHealth() / 20);
+}
+
+std::vector<ObjectGuid> Creature::GetQuestContributors() const
+{
+    std::vector<ObjectGuid> contributors;
+    for (auto const& [playerGuid, damage] : m_questContributionByPlayer)
+        if (damage >= std::max<uint32>(1, GetMaxHealth() / 20))
+            contributors.push_back(playerGuid);
+
+    return contributors;
+}
+
+void Creature::SetQuestLootParticipants(std::vector<ObjectGuid> const& participants)
+{
+    m_questLootParticipants.clear();
+    m_questLootParticipants.insert(participants.begin(), participants.end());
+}
+
+bool Creature::IsQuestLootParticipant(ObjectGuid playerGuid) const
+{
+    return m_questLootParticipants.contains(playerGuid);
 }
 
 // return true if this creature is tapped by the player or by a member of his group.
@@ -3885,6 +3927,8 @@ void Creature::ResetPlayerDamageReq()
     _playerDamageReq = GetHealth() / 2;
     _damagedByPlayer = false;
     _highestPlayerAttackerLevel = 0;
+    m_questContributionByPlayer.clear();
+    m_questLootParticipants.clear();
 }
 
 uint32 Creature::GetPlayerDamageReq() const

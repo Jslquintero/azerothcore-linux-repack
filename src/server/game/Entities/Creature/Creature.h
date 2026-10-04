@@ -25,6 +25,7 @@
 #include "LootMgr.h"
 #include "Unit.h"
 #include <list>
+#include <unordered_set>
 
 class SpellInfo;
 
@@ -240,6 +241,12 @@ public:
     void ResetPickPocketLootTime() { lootPickPocketRestoreTime = 0; }
 
     void SetLootRecipient (Unit* unit, bool withGroup = true);
+    void RecordQuestContribution(Player* player, uint32 damage);
+    [[nodiscard]] bool IsQuestContributor(ObjectGuid playerGuid) const;
+    [[nodiscard]] std::vector<ObjectGuid> GetQuestContributors() const;
+    void SetQuestLootParticipants(std::vector<ObjectGuid> const& participants);
+    [[nodiscard]] bool IsQuestLootParticipant(ObjectGuid playerGuid) const;
+    void ClearQuestContributionDamage() { m_questContributionByPlayer.clear(); }
     void AllLootRemovedFromCorpse();
 
     [[nodiscard]] uint16 GetLootMode() const { return m_LootMode; }
@@ -470,6 +477,8 @@ protected:
 
     ObjectGuid m_lootRecipient;
     ObjectGuid::LowType m_lootRecipientGroup;
+    std::unordered_map<ObjectGuid, uint32> m_questContributionByPlayer;
+    std::unordered_set<ObjectGuid> m_questLootParticipants;
 
     bool _respawnCompatibilityMode{true};
 

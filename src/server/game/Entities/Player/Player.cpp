@@ -8254,7 +8254,9 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
             // the player whose group may loot the corpse
             Player* recipient = creature->GetLootRecipient();
             Group* recipientGroup = creature->GetLootRecipientGroup();
-            if (!recipient && !recipientGroup)
+            bool questContributor = !GetGroup() && creature->IsQuestLootParticipant(GetGUID())
+                && recipient != this && (!recipientGroup || GetGroup() != recipientGroup);
+            if (!recipient && !recipientGroup && !questContributor)
                 return;
 
             if (loot->loot_type == LOOT_NONE)
@@ -8304,7 +8306,9 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
             // set group rights only for loot_type != LOOT_SKINNING
             else
             {
-                if (recipientGroup)
+                if (questContributor)
+                    permission = QUEST_PERMISSION;
+                else if (recipientGroup)
                 {
                     if (GetGroup() == recipientGroup)
                     {
