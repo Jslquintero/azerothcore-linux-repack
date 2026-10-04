@@ -1248,7 +1248,10 @@ uint32 Unit::DealDamage(Unit* attacker, Unit* victim, uint32 damage, CleanDamage
                 if (!attackerPlayer && attacker->m_movedByPlayer)
                     attackerPlayer = attacker->m_movedByPlayer->ToPlayer();
                 if (attackerPlayer)
+                {
                     attackerLevel = attackerPlayer->GetLevel();
+                    victim->ToCreature()->RecordQuestContribution(attackerPlayer, unDamage);
+                }
             }
 
             victim->ToCreature()->LowerPlayerDamageReq(unDamage, damagedByPlayer, attackerLevel);
@@ -14017,6 +14020,7 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     // find player: owner of controlled `this` or `this` itself maybe
     Player* player = killer ? killer->GetCharmerOrOwnerPlayerOrPlayerItself() : nullptr;
     Creature* creature = victim->ToCreature();
+    std::vector<ObjectGuid> questContributors = creature ? creature->GetQuestContributors() : std::vector<ObjectGuid>();
 
     bool isRewardAllowed = true;
     if (creature)
@@ -14097,7 +14101,21 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
             loot->clear();
 
             if (uint32 lootid = creature->GetCreatureTemplate()->lootid)
+            {
                 loot->FillLoot(lootid, LootTemplates_Creature, looter, false, false, creature->GetLootMode(), creature);
+
+                for (ObjectGuid contributorGuid : questContributors)
+                {
+                    if (contributorGuid == looter->GetGUID())
+                        continue;
+
+                    Player* contributor = ObjectAccessor::FindConnectedPlayer(contributorGuid);
+                    if (!contributor || contributor->GetGroup() || !contributor->IsAtLootRewardDistance(creature))
+                        continue;
+
+                    loot->FillQuestLootFor(contributor, lootid, LootTemplates_Creature, creature->GetLootMode(), creature);
+                }
+            }
 
             if (creature->GetLootMode())
                 loot->generateMoneyLoot(creature->GetCreatureTemplate()->mingold, creature->GetCreatureTemplate()->maxgold);
@@ -14116,6 +14134,19 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
         }
 
         player->RewardPlayerAndGroupAtKill(victim, false);
+
+        if (creature)
+        {
+            for (ObjectGuid contributorGuid : questContributors)
+            {
+                if (contributorGuid == player->GetGUID())
+                    continue;
+
+                Player* contributor = ObjectAccessor::FindConnectedPlayer(contributorGuid);
+                if (contributor && !contributor->GetGroup() && contributor->IsAtLootRewardDistance(creature))
+                    contributor->KilledMonster(creature->GetCreatureTemplate(), creature->GetGUID());
+            }
+        }
     }
 
     // Do KILL and KILLED procs. KILL proc is called only for the unit who landed the killing blow (and its owner - for pets and totems) regardless of who tapped the victim
@@ -14179,6 +14210,13 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
                 spiritOfRedemption = true;
             }
         }
+    }
+
+    if (creature)
+    {
+        if (isRewardAllowed)
+            creature->SetQuestLootParticipants(questContributors);
+        creature->ClearQuestContributionDamage();
     }
 
     if (!spiritOfRedemption)

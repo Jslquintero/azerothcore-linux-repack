@@ -101,6 +101,16 @@ void WorldSession::HandleAutostoreLootItemOpcode(WorldPacket& recvData)
         loot = &creature->loot;
     }
 
+    if (lguid.IsAnyTypeCreature())
+    {
+        if (Creature* creature = player->GetMap()->GetCreature(lguid))
+        {
+            if (creature->IsQuestLootParticipant(player->GetGUID()) && !creature->isTappedBy(player)
+                && lootSlot < loot->items.size())
+                return;
+        }
+    }
+
     sScriptMgr->OnPlayerAfterCreatureLoot(player);
 
     InventoryResult msg;

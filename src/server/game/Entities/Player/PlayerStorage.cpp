@@ -5754,6 +5754,9 @@ bool Player::isAllowedToLoot(Creature const* creature)
         return creature->GetLootRecipientGUID() == GetGUID();
 
     Group* thisGroup = GetGroup();
+    if (!thisGroup && creature->IsQuestLootParticipant(GetGUID()))
+        return true;
+
     if (!thisGroup)
         return this == creature->GetLootRecipient();
     else if (thisGroup != creature->GetLootRecipientGroup())
