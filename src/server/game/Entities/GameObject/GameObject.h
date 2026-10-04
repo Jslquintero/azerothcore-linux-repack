@@ -263,6 +263,11 @@ public:
     [[nodiscard]] bool hasQuest(uint32 quest_id) const override;
     [[nodiscard]] bool hasInvolvedQuest(uint32 quest_id) const override;
     bool ActivateToQuest(Player* target) const;
+    [[nodiscard]] bool HasPersonalQuestGathered(ObjectGuid const& playerGuid) const;
+    [[nodiscard]] bool MarkPersonalQuestLootAttempt(ObjectGuid const& playerGuid);
+    [[nodiscard]] bool HasPersonalQuestLootAttempt(ObjectGuid const& playerGuid) const;
+    void StartPersonalQuestRespawnTimer();
+    [[nodiscard]] bool HasPersonalQuestRespawnTimer() const { return m_personalQuestRespawnTime != 0; }
     void UseDoorOrButton(uint32 time_to_restore = 0, bool alternative = false, Unit* user = nullptr);
     // 0 = use `gameobject`.`spawntimesecs`
     void ResetDoorOrButton();
@@ -375,6 +380,7 @@ protected:
     time_t      m_respawnTime;                          // (secs) time of next respawn (or despawn if GO have owner()),
     uint32      m_respawnDelayTime;                     // (secs) if 0 then current GO state no dependent from timer
     uint32      m_despawnDelay;
+    time_t      m_personalQuestRespawnTime{0};
     Seconds     m_despawnRespawnTime;                   // override respawn time after delayed despawn
     Seconds     m_restockTime;
     LootState   m_lootState;
@@ -385,6 +391,8 @@ protected:
 
     ObjectGuid m_ritualOwnerGUID;                       // used for GAMEOBJECT_TYPE_SUMMONING_RITUAL where GO is not summoned (no owner)
     GuidSet m_unique_users;
+    GuidSet m_personalQuestGatherers;
+    GuidSet m_personalQuestLootAttempts;
     uint32 m_usetimes;
 
     typedef std::map<uint32, ObjectGuid> ChairSlotAndUser;

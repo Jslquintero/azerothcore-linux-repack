@@ -621,6 +621,9 @@ void GameObject::Update(uint32 diff)
                         m_respawnTime = 0;
                         m_SkillupList.clear();
                         m_usetimes = 0;
+                        m_personalQuestGatherers.clear();
+                        m_personalQuestLootAttempts.clear();
+                        m_personalQuestRespawnTime = 0;
 
                         switch (GetGoType())
                         {
@@ -760,6 +763,16 @@ void GameObject::Update(uint32 diff)
                         }
                         break;
                     case GAMEOBJECT_TYPE_CHEST:
+                        if (m_personalQuestRespawnTime && GameTime::GetGameTime().count() >= m_personalQuestRespawnTime)
+                        {
+                            m_personalQuestRespawnTime = 0;
+                            m_respawnTime = GameTime::GetGameTime().count();
+                            loot.clear();
+                            SetLootState(GO_NOT_READY);
+                            DestroyForVisiblePlayers();
+                            return;
+                        }
+
                         if (m_groupLootTimer)
                         {
                             if (m_groupLootTimer <= diff)
@@ -1310,6 +1323,9 @@ void GameObject::Respawn()
 
 bool GameObject::ActivateToQuest(Player* target) const
 {
+    if (HasPersonalQuestGathered(target->GetGUID()))
+        return false;
+
     if (target->HasQuestForGO(GetEntry()))
         return true;
 
@@ -1364,6 +1380,27 @@ bool GameObject::ActivateToQuest(Player* target) const
     }
 
     return false;
+}
+
+bool GameObject::HasPersonalQuestGathered(ObjectGuid const& playerGuid) const
+{
+    return m_personalQuestGatherers.contains(playerGuid);
+}
+
+bool GameObject::MarkPersonalQuestLootAttempt(ObjectGuid const& playerGuid)
+{
+    return m_personalQuestLootAttempts.insert(playerGuid).second;
+}
+
+bool GameObject::HasPersonalQuestLootAttempt(ObjectGuid const& playerGuid) const
+{
+    return m_personalQuestLootAttempts.contains(playerGuid);
+}
+
+void GameObject::StartPersonalQuestRespawnTimer()
+{
+    if (!m_personalQuestRespawnTime)
+        m_personalQuestRespawnTime = GameTime::GetGameTime().count() + GetRespawnDelay();
 }
 
 void GameObject::TriggeringLinkedGameObject(uint32 trapEntry, Unit* target)
@@ -1466,6 +1503,13 @@ void GameObject::Use(Unit* user)
     if (HasGameObjectFlag(GO_FLAG_NOT_SELECTABLE))
         return;
 
+    Player* playerUser = user->ToPlayer();
+    bool personalQuestGathering = playerUser && GetGoType() == GAMEOBJECT_TYPE_GOOBER &&
+        GetGOInfo()->IsDespawnAtAction() && playerUser->HasQuestForGO(GetEntry());
+
+    if (personalQuestGathering && HasPersonalQuestGathered(playerUser->GetGUID()))
+        return;
+
     // by default spell caster is user
     Unit* spellCaster = user;
     uint32 spellId = 0;
@@ -1481,7 +1525,7 @@ void GameObject::Use(Unit* user)
     }
 
     // If cooldown data present in template
-    if (uint32 cooldown = GetGOInfo()->GetCooldown())
+    if (uint32 cooldown = GetGOInfo()->GetCooldown(); cooldown && !personalQuestGathering)
     {
         if (GameTime::GetGameTimeMS().count() < m_cooldownTime)
             return;
@@ -1627,6 +1671,12 @@ void GameObject::Use(Unit* user)
                 {
                     Player* player = user->ToPlayer();
 
+                    if (personalQuestGathering)
+                    {
+                        m_personalQuestGatherers.insert(player->GetGUID());
+                        AddUniqueUse(player);
+                    }
+
                     if (info->goober.pageId)                    // show page...
                     {
                         WorldPacket data(SMSG_GAMEOBJECT_PAGETEXT, 8);
@@ -1657,7 +1707,7 @@ void GameObject::Use(Unit* user)
                     if (Battleground* bg = player->GetBattleground())
                         bg->EventPlayerUsedGO(player, this);
 
-                    if (Group* group = player->GetGroup())
+                    if (Group* group = player->GetGroup(); group && !personalQuestGathering)
                     {
                         for (GroupReference const* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
                         {
@@ -1674,12 +1724,15 @@ void GameObject::Use(Unit* user)
                     {
                         player->KillCreditGO(info->entry, GetGUID());
                     }
+
+                    if (personalQuestGathering)
+                        ForceValuesUpdateAtIndex(GAMEOBJECT_DYNAMIC);
                 }
 
                 if (uint32 trapEntry = info->goober.linkedTrapId)
                     TriggeringLinkedGameObject(trapEntry, user);
 
-                if (info->GetAutoCloseTime())
+                if (info->GetAutoCloseTime() && !personalQuestGathering)
                 {
                     SetGameObjectFlag(GO_FLAG_IN_USE);
                     SetLootState(GO_ACTIVATED, user);
@@ -1691,7 +1744,8 @@ void GameObject::Use(Unit* user)
                 if (info->goober.customAnim)
                     SendCustomAnim(GetGoAnimProgress());
 
-                m_cooldownTime = GameTime::GetGameTimeMS().count() + info->GetAutoCloseTime();
+                if (!personalQuestGathering)
+                    m_cooldownTime = GameTime::GetGameTimeMS().count() + info->GetAutoCloseTime();
 
                 // cast this spell later if provided
                 spellId = info->goober.spellId;

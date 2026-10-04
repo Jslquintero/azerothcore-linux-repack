@@ -115,6 +115,11 @@ void WorldSession::HandleAutostoreLootItemOpcode(WorldPacket& recvData)
 
     InventoryResult msg;
     LootItem* lootItem = player->StoreLootItem(lootSlot, loot, msg);
+    if (lguid.IsGameObject())
+        if (GameObject* go = player->GetMap()->GetGameObject(lguid))
+            if (go->HasPersonalQuestLootAttempt(player->GetGUID()))
+                go->UpdateObjectVisibility();
+
     if (msg != EQUIP_ERR_OK && lguid.IsItem() && loot->loot_type != LOOT_CORPSE)
     {
         lootItem->is_looted = true;
@@ -375,6 +380,21 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
                 else
                     go->SetLootState(GO_READY);
             }
+            else if (go->isSpawnedByDefault() && go->GetGoType() == GAMEOBJECT_TYPE_CHEST &&
+                go->GetGOInfo()->chest.consumable &&
+                !(player->GetGroup() && go->GetGOInfo()->chest.groupLootRules) &&
+                LootTemplates_Gameobject.HaveQuestLootFor(go->GetGOInfo()->GetLootId()))
+            {
+                bool firstPersonalQuestLootCompletion = !go->HasPersonalQuestRespawnTimer();
+                go->StartPersonalQuestRespawnTimer();
+                go->SetLootState(GO_ACTIVATED, player);
+
+                if (firstPersonalQuestLootCompletion && go->GetGOInfo()->chest.eventId)
+                {
+                    LOG_DEBUG("spells.aura", "Chest ScriptStart id {} for GO {}", go->GetGOInfo()->chest.eventId, go->GetSpawnId());
+                    player->GetMap()->ScriptsStart(sEventScripts, go->GetGOInfo()->chest.eventId, player, go);
+                }
+            }
             else
             {
                 go->SetLootState(GO_JUST_DEACTIVATED);
@@ -389,7 +409,8 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
                 }
             }
 
-            loot->clear();
+            if (!go->HasPersonalQuestRespawnTimer())
+                loot->clear();
         }
         else
         {

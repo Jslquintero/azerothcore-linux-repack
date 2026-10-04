@@ -8021,7 +8021,8 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
 
         // Xinef: loot was generated and respawntime has passed since then, allow to recreate loot
         // Xinef: to avoid bugs, this rule covers spawned gameobjects only
-        if (go->isSpawnedByDefault() && go->getLootState() == GO_ACTIVATED && !go->loot.isLooted() && go->GetLootGenerationTime() + go->GetRespawnDelay() < GameTime::GetGameTime().count())
+        if (go->isSpawnedByDefault() && go->getLootState() == GO_ACTIVATED && !go->HasPersonalQuestRespawnTimer() &&
+            !go->loot.isLooted() && go->GetLootGenerationTime() + go->GetRespawnDelay() < GameTime::GetGameTime().count())
             go->SetLootState(GO_READY);
 
         if (go->getLootState() == GO_READY)
@@ -8052,6 +8053,13 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
 
                 loot->FillLoot(lootid, LootTemplates_Gameobject, this, !groupRules, false, go->GetLootMode(), go);
                 go->SetLootGenerationTime();
+
+                if (!groupRules && go->GetGoType() == GAMEOBJECT_TYPE_CHEST &&
+                    LootTemplates_Gameobject.HaveQuestLootForPlayer(lootid, this) &&
+                    go->MarkPersonalQuestLootAttempt(GetGUID()))
+                {
+                    go->UpdateObjectVisibility();
+                }
 
                 // get next RR player (for next loot)
                 if (groupRules && !go->loot.empty())
@@ -8101,6 +8109,17 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
 
         if (go->getLootState() == GO_ACTIVATED)
         {
+            if (go->GetGoType() == GAMEOBJECT_TYPE_CHEST && go->GetGOInfo()->GetLootId() &&
+                !(GetGroup() && go->GetGOInfo()->chest.groupLootRules) &&
+                LootTemplates_Gameobject.HaveQuestLootForPlayer(go->GetGOInfo()->GetLootId(), this) &&
+                go->MarkPersonalQuestLootAttempt(GetGUID()) && loot->lootOwnerGUID != GetGUID())
+            {
+                // Generate this player's quest drops separately; shared chest items remain in the original loot.
+                loot->FillQuestLootFor(this, go->GetGOInfo()->GetLootId(), LootTemplates_Gameobject,
+                    go->GetLootMode(), go);
+                go->UpdateObjectVisibility();
+            }
+
             if (Group* group = GetGroup())
             {
                 switch (group->GetLootMethod())
@@ -14632,6 +14651,12 @@ bool Player::CanSeeObjectByVisibilityConditions(WorldObject const* object) const
 {
     if (IsGameMaster())
         return true;
+
+    if (GameObject const* gameObject = object->ToGameObject())
+        if (gameObject->GetGoType() == GAMEOBJECT_TYPE_CHEST &&
+            gameObject->HasPersonalQuestLootAttempt(GetGUID()) &&
+            !gameObject->loot.hasItemFor(const_cast<Player*>(this)) && !gameObject->loot.hasItemForAll())
+            return false;
 
     ConditionList conds = sConditionMgr->GetConditionsForObjectVisibility(object);
     ConditionSourceInfo info = ConditionSourceInfo(const_cast<Player*>(this), const_cast<WorldObject*>(object));
