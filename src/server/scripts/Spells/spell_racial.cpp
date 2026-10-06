@@ -49,6 +49,7 @@ enum WowForeverRacialSpells : uint32
     SPELL_WF_RAPID_REGENERATION   = 910017,
     SPELL_WF_TOUCH_GRAVE_MELEE    = 910018,
     SPELL_WF_TOUCH_GRAVE_CASTER   = 910019,
+    SPELL_VAMPIRIC_TOUCH_HEAL     = 52724,
     SPELL_WF_BIG_GAME_HUNTER      = 910020,
     SPELL_WF_MACE_SPECIALIZATION  = 910021,
     SPELL_WF_STONEFORM_REDUCTION  = 910022,
@@ -268,7 +269,7 @@ void TryTouchOfGrave(Player* player, Unit* victim)
     uint32 actualDamage = Unit::DealDamage(player, victim, damage, nullptr, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_SHADOW,
         nullptr, false);
     if (actualDamage)
-        Unit::DealHeal(player, player, actualDamage);
+        player->CastCustomSpell(SPELL_VAMPIRIC_TOUCH_HEAL, SPELLVALUE_BASE_POINT0, actualDamage, player, true);
 }
 
 void LearnIfMissing(Player* player, uint32 spellId)
