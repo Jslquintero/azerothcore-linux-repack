@@ -1362,6 +1362,18 @@ def patch_spell_dbc(path: Path):
     path.write_bytes(data)
 
 
+# Preserve the physical/caster racial variants when adding Retail classes.
+RACIAL_CLASS_MASKS = {
+    15034: 400,  # Orc caster Blood Fury: Priest, Mage, Warlock.
+    14022: 47,   # Draenei physical Heroic Presence: add Rogue.
+    14023: 464,  # Draenei caster Heroic Presence: add Warlock.
+    20172: 12,   # Draenei physical Shadow Resistance: Hunter, Rogue.
+    20173: 384,  # Draenei caster Shadow Resistance: Mage, Warlock.
+    20178: 12,   # Draenei physical Gift of the Naaru: Hunter, Rogue.
+    20179: 384,  # Draenei caster Gift of the Naaru: Mage, Warlock.
+}
+
+
 def patch_skill_line_ability(path: Path):
     data, record_count, record_size, records_end = read_wdbc(path, 14, 56)
 
@@ -1448,6 +1460,8 @@ def patch_skill_line_ability(path: Path):
     for index in range(record_count):
         offset = 20 + index * record_size
         record = struct.unpack_from("<14I", data, offset)
+        if record[0] in RACIAL_CLASS_MASKS:
+            struct.pack_into("<I", data, offset + 4 * 4, RACIAL_CLASS_MASKS[record[0]])
         if record[2] == 20552 and record[1] == 124 and record[3] == 32:
             cultivation_record = offset
         if record[2] == 20555 and record[1] == 733 and record[3] == 128:
@@ -1681,6 +1695,7 @@ def validate_skill_line_ability(path: Path):
         (125, 2, 20572),
         (125, 2, 20573),
         (125, 2, 20574),
+        (125, 2, 33702),
         (125, 2, 910001),
         (124, 32, 20549),
         (124, 32, 20550),
@@ -1731,12 +1746,19 @@ def validate_skill_line_ability(path: Path):
     }
     found = set()
     forbidden_custom = set()
+    found_class_masks = set()
 
     for index in range(record_count):
         offset = 20 + index * record_size
         record = struct.unpack_from("<14I", data, offset)
         spell_id = record[2]
         key = (record[1], record[3], spell_id)
+        if record[0] in RACIAL_CLASS_MASKS:
+            if record[4] != RACIAL_CLASS_MASKS[record[0]]:
+                raise ValueError(f"{path}: incorrect racial class mask for record {record[0]}")
+            found_class_masks.add(record[0])
+        if key == (125, 2, 33702) and record[4] != 400:
+            raise ValueError(f"{path}: caster Blood Fury must cover Orc Priests, Mages, and Warlocks")
         if key in expected:
             found.add(key)
         if spell_id in {26290, 58943, 910037, 910038, 910039, 910040, 910041}:
@@ -1762,6 +1784,9 @@ def validate_skill_line_ability(path: Path):
             forbidden_custom.add(spell_id)
 
     missing = expected - found
+    missing_class_masks = RACIAL_CLASS_MASKS.keys() - found_class_masks
+    if missing_class_masks:
+        raise ValueError(f"{path}: missing racial class records: {sorted(missing_class_masks)}")
     if missing:
         raise ValueError(f"{path}: missing WoW Forever racial spells: {sorted(missing)}")
     if forbidden_custom:

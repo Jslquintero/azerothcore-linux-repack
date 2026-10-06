@@ -17,6 +17,17 @@ RACE_CLASS_PAIRS = (
     (8, 9),   # Troll Warlock
     (8, 11),  # Troll Druid
     (10, 1),  # Blood Elf Warrior
+    (2, 5),   # Orc Priest
+    (3, 8),   # Dwarf Mage
+    (3, 9),   # Dwarf Warlock
+    (4, 8),   # Night Elf Mage
+    (4, 9),   # Night Elf Warlock
+    (6, 4),   # Tauren Rogue
+    (6, 8),   # Tauren Mage
+    (6, 9),   # Tauren Warlock
+    (7, 3),   # Gnome Hunter
+    (11, 4),  # Draenei Rogue
+    (11, 9),  # Draenei Warlock
 )
 
 # Choose existing outfits from the same faction where possible. The item IDs and
@@ -33,6 +44,17 @@ OUTFIT_TEMPLATE_RACE = {
     (8, 9): 2,
     (8, 11): 6,
     (10, 1): 1,
+    (2, 5): 8,
+    (3, 8): 7,
+    (3, 9): 7,
+    (4, 8): 1,
+    (4, 9): 1,
+    (6, 4): 2,
+    (6, 8): 8,
+    (6, 9): 2,
+    (7, 3): 3,
+    (11, 4): 1,
+    (11, 9): 1,
 }
 
 HEADER_SIZE = 20
@@ -84,16 +106,15 @@ def patch_char_start_outfit(source: Path, destination: Path):
         for index in range(record_count)
     ]
     outfit_by_key = {unpack_outfit_key(record): record for record in records}
-    existing = {(race, class_id) for race, class_id, _gender in outfit_by_key}
 
     next_id = max(struct.unpack_from("<I", record)[0] for record in records) + 1
     additions = []
     for race, class_id in RACE_CLASS_PAIRS:
-        if (race, class_id) in existing:
-            continue
-
         template_race = OUTFIT_TEMPLATE_RACE[(race, class_id)]
         for gender in (0, 1):
+            if (race, class_id, gender) in outfit_by_key:
+                continue
+
             template = outfit_by_key.get((template_race, class_id, gender))
             if template is None:
                 raise ValueError(
@@ -115,10 +136,28 @@ def patch_char_start_outfit(source: Path, destination: Path):
     destination.write_bytes(data)
 
 
+def patch_skill_race_class_info(source: Path, destination: Path):
+    data, record_count, record_size, _records_end = read_wdbc(source, 8, 32)
+    # Gnome hunters inherit dwarf outfits, including a gun. The stock gun skill
+    # records exclude gnome hunters even when playercreateinfo_skills grants it.
+    for index in range(record_count):
+        offset = HEADER_SIZE + index * record_size
+        _id, skill, race_mask, class_mask, *_rest = struct.unpack_from("<8I", data, offset)
+        if skill == 46 and race_mask & 4 and class_mask & 4:
+            struct.pack_into("<I", data, offset + 8, race_mask | 64)
+            break
+    else:
+        raise ValueError("SkillRaceClassInfo.dbc: no dwarf hunter gun skill template")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(data)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Add supported race/class combinations to 3.3.5a DBC files.")
     parser.add_argument("--char-base-info", type=Path, required=True, help="Original 3.3.5a CharBaseInfo.dbc")
     parser.add_argument("--char-start-outfit", type=Path, required=True, help="Original 3.3.5a CharStartOutfit.dbc")
+    parser.add_argument("--skill-race-class-info", type=Path, required=True, help="Original 3.3.5a SkillRaceClassInfo.dbc")
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -129,6 +168,7 @@ def main():
 
     patch_char_base_info(args.char_base_info, args.output_dir / "CharBaseInfo.dbc")
     patch_char_start_outfit(args.char_start_outfit, args.output_dir / "CharStartOutfit.dbc")
+    patch_skill_race_class_info(args.skill_race_class_info, args.output_dir / "SkillRaceClassInfo.dbc")
 
 
 if __name__ == "__main__":

@@ -150,6 +150,15 @@ Add only the active spell to server-side racial learning data:
 Existing characters may need the active spell taught manually or refreshed according to the project's racial
 migration process. The helper must remain internal.
 
+### Orc Caster Classes
+
+The caster Blood Fury (`33702`) learning record (`15034`, racial skill `125`) uses class mask `400`:
+Priest (`16`), Mage (`128`), and Warlock (`256`). Keep this mask identical in `skilllineability_dbc`
+and client `SkillLineAbility.dbc`; a creation-only custom spell grant does not update client racial
+classification. `rev_1791253303056472029.sql` provides the server override. The other Blood Fury
+variants retain their existing class masks. Existing characters learn the caster variant when their
+racial skill is loaded at login after worldserver restarts.
+
 ## Replacing A Stock Racial: Perception
 
 Human Perception uses active spell `20600`: 20 seconds (verified duration index `18`), a 180-second cooldown,
