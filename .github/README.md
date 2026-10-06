@@ -15,6 +15,24 @@ This is not an official AzerothCore distribution. It is a personal server setup
 that I am sharing publicly in case someone else finds it useful, wants to fork
 it, or wants to use it as a base for their own server.
 
+### Custom Client Files
+
+This is not a standard 3.3.5a repack. It includes custom racial spells and
+additional race/class combinations that require matching client files. A
+stock 3.3.5a client will not display all of this repack's custom content
+correctly.
+
+### Downloads
+
+Download each file from the latest release:
+
+- [Download patch-z.mpq](https://github.com/Jslquintero/azerothcore-linux-repack/releases/latest/download/patch-z.mpq) — place it in the client's `Data` directory.
+- [Download AcoreRacialTooltips.zip](https://github.com/Jslquintero/azerothcore-linux-repack/releases/latest/download/AcoreRacialTooltips.zip) — extract it into `Interface/AddOns`.
+
+Fully close and restart the client after installing the MPQ. Enable **Acore
+Racial Tooltips** in the AddOns list at character selection. See the [client
+patch notes](../client-patches/README.md) for details.
+
 ### Quick Start
 
 Requirements:
@@ -163,6 +181,25 @@ repos separados.
 Esta no es una distribución oficial de AzerothCore. Es mi setup personal de
 servidor, publicado por si a alguien más le sirve, quiere hacer fork o usarlo
 como base para su propio servidor.
+
+### Archivos Custom Del Cliente
+
+Este no es un repack estándar de 3.3.5a. Incluye raciales custom y
+combinaciones adicionales de raza y clase que requieren archivos de cliente
+compatibles. Un cliente 3.3.5a estándar no mostrará correctamente todo el
+contenido custom de este repack.
+
+### Descargas
+
+Descarga cada archivo desde el último release:
+
+- [Descargar patch-z.mpq](https://github.com/Jslquintero/azerothcore-linux-repack/releases/latest/download/patch-z.mpq) — colócalo en la carpeta `Data` del cliente.
+- [Descargar AcoreRacialTooltips.zip](https://github.com/Jslquintero/azerothcore-linux-repack/releases/latest/download/AcoreRacialTooltips.zip) — extráelo en `Interface/AddOns`.
+
+Cierra por completo y reinicia el cliente después de instalar el MPQ. Activa
+**Acore Racial Tooltips** en la lista de AddOns en la pantalla de selección de
+personaje. Consulta las [notas de parches del cliente](../client-patches/README.md)
+para más detalles.
 
 ### Inicio Rápido
 
