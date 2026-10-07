@@ -630,22 +630,22 @@ void Loot::FillNotNormalLootFor(Player* player)
     }
 }
 
-void Loot::FillQuestLootFor(Player* player, uint32 lootId, LootStore const& store, uint16 lootMode,
+bool Loot::FillQuestLootFor(Player* player, uint32 lootId, LootStore const& store, uint16 lootMode,
     WorldObject* lootSource)
 {
     if (PlayerQuestItems.contains(player->GetGUID()))
-        return;
+        return false;
 
     Loot personalLoot;
     if (lootSource)
         personalLoot.sourceWorldObjectGUID = lootSource->GetGUID();
 
     if (!personalLoot.FillLoot(lootId, store, player, true, true, lootMode, lootSource))
-        return;
+        return false;
 
     QuestItemMap::const_iterator playerItems = personalLoot.PlayerQuestItems.find(player->GetGUID());
     if (playerItems == personalLoot.PlayerQuestItems.end())
-        return;
+        return false;
 
     QuestItemList* questItems = new QuestItemList();
     for (QuestItem const& questItem : *playerItems->second)
@@ -662,10 +662,11 @@ void Loot::FillQuestLootFor(Player* player, uint32 lootId, LootStore const& stor
     if (questItems->empty())
     {
         delete questItems;
-        return;
+        return false;
     }
 
     PlayerQuestItems[player->GetGUID()] = questItems;
+    return true;
 }
 
 QuestItemList* Loot::FillFFALoot(Player* player)

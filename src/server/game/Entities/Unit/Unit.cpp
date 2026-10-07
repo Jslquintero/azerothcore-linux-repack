@@ -14021,6 +14021,7 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     Player* player = killer ? killer->GetCharmerOrOwnerPlayerOrPlayerItself() : nullptr;
     Creature* creature = victim->ToCreature();
     std::vector<ObjectGuid> questContributors = creature ? creature->GetQuestContributors() : std::vector<ObjectGuid>();
+    std::vector<ObjectGuid> questLootParticipants;
 
     bool isRewardAllowed = true;
     if (creature)
@@ -14113,7 +14114,8 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
                     if (!contributor || contributor->GetGroup() || !contributor->IsAtLootRewardDistance(creature))
                         continue;
 
-                    loot->FillQuestLootFor(contributor, lootid, LootTemplates_Creature, creature->GetLootMode(), creature);
+                    if (loot->FillQuestLootFor(contributor, lootid, LootTemplates_Creature, creature->GetLootMode(), creature))
+                        questLootParticipants.push_back(contributorGuid);
                 }
             }
 
@@ -14215,7 +14217,7 @@ void Unit::Kill(Unit* killer, Unit* victim, bool durabilityLoss, WeaponAttackTyp
     if (creature)
     {
         if (isRewardAllowed)
-            creature->SetQuestLootParticipants(questContributors);
+            creature->SetQuestLootParticipants(questLootParticipants);
         creature->ClearQuestContributionDamage();
     }
 
