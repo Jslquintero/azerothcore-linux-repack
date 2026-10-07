@@ -1734,6 +1734,20 @@ PlayerStart.AllReputation = 0
 
 PlayerStart.CustomSpells = 0
 
+# Paladin spell block: Holy and Protection paladins can block eligible hostile spells.
+PaladinSpellBlock.Enable = 1
+PaladinSpellBlock.RequireShield = 1
+PaladinSpellBlock.RequireFrontArc = 1
+PaladinSpellBlock.MinHolyPoints = 10
+PaladinSpellBlock.MinProtectionPoints = 10
+PaladinSpellBlock.AllowDominantTree = 0
+PaladinSpellBlock.UseRealBlockChance = 1
+PaladinSpellBlock.HolyBonusChance = 6.0
+PaladinSpellBlock.ProtectionBonusChance = 10.0
+PaladinSpellBlock.MaxChance = 35.0
+PaladinSpellBlock.AllowAreaSpells = 0
+PaladinSpellBlock.PlayAnimation = 0
+
 #
 #    PlayerStart.MapsExplored
 #        Description: Characters start with all maps explored.
