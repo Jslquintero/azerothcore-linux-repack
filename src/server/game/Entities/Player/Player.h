@@ -808,6 +808,7 @@ enum RestFlag
     REST_FLAG_IN_TAVERN         = 0x1,
     REST_FLAG_IN_CITY           = 0x2,
     REST_FLAG_IN_FACTION_AREA   = 0x4, // used with AREA_FLAG_REST_ZONE_*
+    REST_FLAG_NEAR_CAMPFIRE     = 0x8,
 };
 
 enum TeleportToOptions

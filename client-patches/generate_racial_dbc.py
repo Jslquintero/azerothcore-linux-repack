@@ -1090,6 +1090,17 @@ def patch_night_elf_racials(data: bytearray, records_end: int, record_count: int
 def patch_spell_dbc(path: Path):
     data, record_count, record_size, records_end = read_wdbc(path, SPELL_FIELD_COUNT, SPELL_RECORD_SIZE)
 
+    # Restore the vanilla Basic Campfire tool and Simple Wood reagent.
+    campfire = find_record(data, record_count, record_size, 818)
+    campfire_fields = {
+        50: 4471,  # Flint and Tinder (tool; reusable).
+        52: 4470,  # Simple Wood (reagent).
+        60: 1,     # One Simple Wood.
+    }
+    for field, value in campfire_fields.items():
+        set_u32(data, campfire, field, value)
+    require_fields(data, campfire, 818, campfire_fields)
+
     # Spell.dbc has no specialization-specific stance field. Let the client offer Charge in any stance;
     # Spell::CheckCast keeps the exception limited to Protection warriors on the server.
     charge_fields = {12: 0}  # Stances.

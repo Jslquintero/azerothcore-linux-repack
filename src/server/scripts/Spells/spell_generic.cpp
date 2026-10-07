@@ -4896,6 +4896,25 @@ class spell_gen_basic_campfire : public SpellScript
 {
     PrepareSpellScript(spell_gen_basic_campfire);
 
+    SpellCastResult CheckReagents()
+    {
+        Player* player = GetCaster()->ToPlayer();
+        if (player && (!player->HasItemCount(4471) || !player->HasItemCount(4470)))
+            return SPELL_FAILED_REAGENTS;
+
+        return SPELL_CAST_OK;
+    }
+
+    void ConsumeSimpleWood()
+    {
+        SpellInfo const* spellInfo = GetSpellInfo();
+        if (std::find(spellInfo->Reagent.begin(), spellInfo->Reagent.end(), 4470) != spellInfo->Reagent.end())
+            return;
+
+        if (Player* player = GetCaster()->ToPlayer())
+            player->DestroyItemCount(4470, 1, true);
+    }
+
     void ModDest(SpellDestination& dest)
     {
         if (Unit* caster = GetCaster())
@@ -4920,6 +4939,8 @@ class spell_gen_basic_campfire : public SpellScript
 
     void Register() override
     {
+        OnCheckCast += SpellCheckCastFn(spell_gen_basic_campfire::CheckReagents);
+        AfterCast += SpellCastFn(spell_gen_basic_campfire::ConsumeSimpleWood);
         OnDestinationTargetSelect += SpellDestinationTargetSelectFn(spell_gen_basic_campfire::ModDest, EFFECT_0, TARGET_DEST_CASTER_SUMMON);
         OnEffectHit += SpellEffectFn(spell_gen_basic_campfire::ModifyCookingSkill, EFFECT_0, SPELL_EFFECT_TRANS_DOOR);
     }
