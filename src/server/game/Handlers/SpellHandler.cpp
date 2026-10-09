@@ -597,6 +597,11 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
 
     // maybe should only remove one buff when there are multiple?
     _player->RemoveOwnedAura(spellId, ObjectGuid::Empty, 0, AURA_REMOVE_BY_CANCEL);
+
+    // The shapeshift bar still references the learned spell, while its racial variant owns the aura.
+    SpellInfo const* variant = sSpellMgr->GetRacialShapeshiftSpell(spellInfo, _player);
+    if (variant != spellInfo)
+        _player->RemoveOwnedAura(variant->Id, ObjectGuid::Empty, 0, AURA_REMOVE_BY_CANCEL);
 }
 
 void WorldSession::HandlePetCancelAuraOpcode(WorldPacket& recvPacket)

@@ -591,6 +591,59 @@ SpellInfo const* SpellMgr::GetSpellForDifficultyFromSpell(SpellInfo const* spell
     return newSpell;
 }
 
+SpellInfo const* SpellMgr::GetRacialShapeshiftSpell(SpellInfo const* spell, Unit const* caster) const
+{
+    if (!spell || !caster || !caster->IsPlayer() || caster->getRace() != RACE_TROLL
+        || caster->getClass() != CLASS_DRUID)
+        return spell;
+
+    uint32 variantId;
+    switch (spell->Id)
+    {
+        case 768: // Cat Form: raptor transformation sound
+            variantId = 910100;
+            break;
+        case 1066: // Aquatic Form: crocolisk transformation sound
+            variantId = 910101;
+            break;
+        default:
+            return spell;
+    }
+
+    // Keep the learned spell and action buttons unchanged. The variants are exact gameplay clones
+    // with their own client visuals. Fall back until the matching server DBC has been installed.
+    if (SpellInfo const* variant = GetSpellInfo(variantId))
+        return variant;
+
+    return spell;
+}
+
+uint32 SpellMgr::GetRacialCastVisualSpellId(SpellInfo const* spell, Unit const* caster) const
+{
+    if (!caster || !caster->IsPlayer() || caster->getRace() != RACE_TROLL
+        || caster->getClass() != CLASS_DRUID || caster->GetShapeshiftForm() != FORM_CAT)
+        return spell->Id;
+
+    switch (GetFirstSpellInChain(spell->Id))
+    {
+        case 1082:  // Claw
+        case 1822:  // Rake
+        case 5221:  // Shred
+        case 6785:  // Ravage
+        case 8998:  // Cower
+        case 22568: // Ferocious Bite
+        case 33876: // Mangle (Cat)
+            break;
+        default:
+            return spell->Id;
+    }
+
+    // Presentation aliases are only sent in cast packets. Gameplay, auras, scripts, rank chains,
+    // cooldowns and combat logs continue to use the original spell ID.
+    uint32 const visualSpellId = 1000000 + spell->Id;
+    return GetSpellInfo(visualSpellId) ? visualSpellId : spell->Id;
+}
+
 SpellChainNode const* SpellMgr::GetSpellChainNode(uint32 spell_id) const
 {
     SpellChainMap::const_iterator itr = mSpellChains.find(spell_id);

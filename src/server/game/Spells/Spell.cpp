@@ -595,10 +595,12 @@ SpellValue::SpellValue(SpellInfo const* proto)
 }
 
 Spell::Spell(Unit* caster, SpellInfo const* info, TriggerCastFlags triggerFlags, ObjectGuid originalCasterGUID, bool skipCheck) :
-    m_spellInfo(sSpellMgr->GetSpellForDifficultyFromSpell(info, caster)),
+    m_spellInfo(sSpellMgr->GetRacialShapeshiftSpell(
+        sSpellMgr->GetSpellForDifficultyFromSpell(info, caster), caster)),
     m_caster((info->HasAttribute(SPELL_ATTR6_ORIGINATE_FROM_CONTROLLER) && caster->GetCharmerOrOwner()) ? caster->GetCharmerOrOwner() : caster)
     , m_spellValue(new SpellValue(m_spellInfo)), _spellEvent(nullptr)
 {
+    m_castVisualSpellId = sSpellMgr->GetRacialCastVisualSpellId(m_spellInfo, m_caster);
     m_customError = SPELL_CUSTOM_ERROR_NONE;
     m_skipCheck = skipCheck;
     m_selfContainer = nullptr;
@@ -4789,7 +4791,7 @@ void Spell::SendSpellStart()
 
     data << realCasterGUID;
     data << uint8(m_cast_count);                            // pending spell cast?
-    data << uint32(m_spellInfo->Id);                        // spellId
+    data << uint32(m_castVisualSpellId);                    // client visual; gameplay keeps m_spellInfo->Id
     data << uint32(castFlags);                              // cast flags
     data << int32(m_timer);                                 // delay?
 
@@ -4888,7 +4890,7 @@ void Spell::SendSpellGo()
 
     data << realCasterGUID;
     data << uint8(m_cast_count);                            // pending spell cast?
-    data << uint32(m_spellInfo->Id);                        // spellId
+    data << uint32(m_castVisualSpellId);                    // client visual; gameplay keeps m_spellInfo->Id
     data << uint32(castFlags);                              // cast flags
     data << uint32(GameTime::GetGameTimeMS().count());                 // timestamp
 
@@ -5195,14 +5197,14 @@ void Spell::SendInterrupted(uint8 result)
     WorldPacket data(SMSG_SPELL_FAILURE, (8 + 1 + 4 + 1));
     data << m_caster->GetPackGUID();
     data << uint8(m_cast_count);
-    data << uint32(m_spellInfo->Id);
+    data << uint32(m_castVisualSpellId);
     data << uint8(result);
     m_caster->SendMessageToSet(&data, true);
 
     data.Initialize(SMSG_SPELL_FAILED_OTHER, (8 + 1 + 4 + 1));
     data << m_caster->GetPackGUID();
     data << uint8(m_cast_count);
-    data << uint32(m_spellInfo->Id);
+    data << uint32(m_castVisualSpellId);
     data << uint8(result);
     m_caster->SendMessageToSet(&data, true);
 }

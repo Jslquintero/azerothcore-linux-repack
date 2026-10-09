@@ -633,6 +633,7 @@ public:
     std::string GetDebugInfo() const;
 
     //Spell data
+    uint32 m_castVisualSpellId;                         // Client cast presentation; never used for gameplay or cooldowns
     SpellSchoolMask m_spellSchoolMask;                  // Spell school (can be overwrite for some spells (wand shoot for example)
     WeaponAttackType m_attackType;                      // For weapon based attack
     int32 m_powerCost;                                  // Calculated spell cost     initialized only in Spell::prepare

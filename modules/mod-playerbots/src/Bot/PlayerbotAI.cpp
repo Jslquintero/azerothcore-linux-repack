@@ -1794,7 +1794,7 @@ bool PlayerbotAI::IsCombo(Player* player)
 {
     // int tab = AiFactory::GetPlayerSpecTab(player);
     return player->getClass() == CLASS_ROGUE ||
-           (player->getClass() == CLASS_DRUID && player->HasAura(768));  // cat druid
+           (player->getClass() == CLASS_DRUID && player->GetShapeshiftForm() == FORM_CAT);
 }
 
 bool PlayerbotAI::IsRangedDps(Player* player, bool bySpec) { return IsRanged(player, bySpec) && IsDps(player, bySpec); }
@@ -3026,6 +3026,10 @@ bool PlayerbotAI::HasAura(uint32 spellId, Unit const* unit)
     if (!spellId || !unit)
         return false;
 
+    if (SpellInfo const* spellInfo = sSpellMgr->GetRacialShapeshiftSpell(sSpellMgr->GetSpellInfo(spellId), unit))
+        if (unit->HasAura(spellInfo->Id))
+            return true;
+
     return unit->HasAura(spellId);
     // for (uint8 effect = EFFECT_0; effect <= EFFECT_2; effect++)
     // {
@@ -4138,8 +4142,13 @@ void PlayerbotAI::InterruptSpell()
 void PlayerbotAI::RemoveAura(std::string const name)
 {
     uint32 spellid = aiObjectContext->GetValue<uint32>("spell id", name)->Get();
-    if (spellid && HasAura(spellid, bot))
-        bot->RemoveAurasDueToSpell(spellid);
+    if (!spellid)
+        return;
+
+    bot->RemoveAurasDueToSpell(spellid);
+    if (SpellInfo const* variant = sSpellMgr->GetRacialShapeshiftSpell(sSpellMgr->GetSpellInfo(spellid), bot))
+        if (variant->Id != spellid)
+            bot->RemoveAurasDueToSpell(variant->Id);
 }
 
 bool PlayerbotAI::IsInterruptableSpellCasting(Unit* target, std::string const spell)

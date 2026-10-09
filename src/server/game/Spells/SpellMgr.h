@@ -669,6 +669,8 @@ public:
     void SetSpellDifficultyId(uint32 spellId, uint32 id);
     uint32 GetSpellIdForDifficulty(uint32 spellId, Unit const* caster) const;
     SpellInfo const* GetSpellForDifficultyFromSpell(SpellInfo const* spell, Unit const* caster) const;
+    SpellInfo const* GetRacialShapeshiftSpell(SpellInfo const* spell, Unit const* caster) const;
+    uint32 GetRacialCastVisualSpellId(SpellInfo const* spell, Unit const* caster) const;
 
     // Spell Ranks table
     [[nodiscard]] SpellChainNode const* GetSpellChainNode(uint32 spell_id) const;
