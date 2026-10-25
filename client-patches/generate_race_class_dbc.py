@@ -57,6 +57,16 @@ OUTFIT_TEMPLATE_RACE = {
     (11, 9): 1,
 }
 
+# Keep the template's weapons and accessories, but take shirt, pants, and boots
+# from another hunter outfit. This preserves the bow of the Undead template
+# while giving it the complete Dwarf clothing set.
+OUTFIT_CLOTHING_DONOR = {
+    (5, 3): 3,  # Undead Hunter clothing from Dwarf Hunter.
+}
+
+CLOTHING_INVTYPES = (4, 7, 8)
+
+MAX_OUTFIT_ITEMS = 24
 HEADER_SIZE = 20
 
 
@@ -99,6 +109,34 @@ def unpack_outfit_key(record: bytes):
     return record[4], record[5], record[6]
 
 
+def outfit_entries(record: bytes):
+    items = struct.unpack_from("<24i", record, 8)
+    displays = struct.unpack_from("<24i", record, 104)
+    invtypes = struct.unpack_from("<24i", record, 200)
+    return [
+        (item, display, inv_type)
+        for item, display, inv_type in zip(items, displays, invtypes)
+        if item not in (0, -1)
+    ]
+
+
+def apply_clothing_donor(record: bytearray, donor: bytes):
+    donor_entries = {entry[2]: entry for entry in outfit_entries(donor)}
+    entries = [entry for entry in outfit_entries(record) if entry[2] not in CLOTHING_INVTYPES]
+    for inv_type in CLOTHING_INVTYPES:
+        if inv_type in donor_entries:
+            entries.append(donor_entries[inv_type])
+
+    if len(entries) > MAX_OUTFIT_ITEMS:
+        raise ValueError("CharStartOutfit.dbc: outfit has too many items after applying clothing donor")
+
+    entries.extend([(-1, -1, -1)] * (MAX_OUTFIT_ITEMS - len(entries)))
+    for index, (item, display, inv_type) in enumerate(entries):
+        struct.pack_into("<i", record, 8 + index * 4, item)
+        struct.pack_into("<i", record, 104 + index * 4, display)
+        struct.pack_into("<i", record, 200 + index * 4, inv_type)
+
+
 def patch_char_start_outfit(source: Path, destination: Path):
     data, record_count, record_size, records_end = read_wdbc(source, 77, 296)
     records = [
@@ -127,6 +165,17 @@ def patch_char_start_outfit(source: Path, destination: Path):
             record[4] = race
             record[5] = class_id
             record[6] = gender
+
+            donor_race = OUTFIT_CLOTHING_DONOR.get((race, class_id))
+            if donor_race is not None:
+                donor = outfit_by_key.get((donor_race, class_id, gender))
+                if donor is None:
+                    raise ValueError(
+                        f"CharStartOutfit.dbc: no clothing donor outfit for race {donor_race}, "
+                        f"class {class_id}, gender {gender}"
+                    )
+                apply_clothing_donor(record, donor)
+
             additions.append(bytes(record))
             next_id += 1
 

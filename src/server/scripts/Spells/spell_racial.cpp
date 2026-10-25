@@ -330,7 +330,7 @@ void EnsureRacials(Player* player)
             RemoveIfKnown(player, SPELL_WF_RAPID_REGENERATION);
 
             if (player->getClass() == CLASS_WARRIOR || player->getClass() == CLASS_PALADIN
-                || player->getClass() == CLASS_ROGUE)
+                || player->getClass() == CLASS_HUNTER || player->getClass() == CLASS_ROGUE)
             {
                 RemoveIfKnown(player, SPELL_WF_TOUCH_GRAVE_CASTER);
                 LearnIfMissing(player, SPELL_WF_TOUCH_GRAVE_MELEE);

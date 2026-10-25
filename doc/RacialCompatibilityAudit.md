@@ -16,8 +16,10 @@ and ten Death Knight combinations, which use the client's separate hero-class cr
 | Dwarf | Retired Frost Resistance remained learnable on the server | Disable original learning record 11725 |
 | Night Elf | Retired Nature Resistance and Elusiveness remained learnable on the server | Disable original learning records 11717 and 20665 |
 | Undead | Retired Shadow Resistance remained learnable on the server | Disable original learning record 11714 |
+| Undead Hunter | Neither Touch of the Grave variant included Hunter | Extend the physical variant to Hunter in SQL, client learning masks, and `EnsureRacials`; `rev_1792957703605094041.sql` |
 
-The last five corrections are in `rev_1791253684952831587.sql`. The retired passives were already
+The Dwarf, Night Elf, and Undead corrections are in `rev_1791253684952831587.sql`; the Undead Hunter
+correction is in `rev_1792957703605094041.sql`. The retired passives were already
 deliberately removed from the client by the custom racial generator. Disabling the server records
 preserves that design. No persisted `character_spell` rows for those race/spell pairs were found at
 the time of the audit; dependent skill spells are recalculated at login.
@@ -38,12 +40,6 @@ a racial absent from both sides, so class-specific families were also reviewed.
 | Combination | Gap | Required work |
 | --- | --- | --- |
 | Blood Elf Warrior | No Arcane Torrent variant covers Warrior | Define a rage-compatible variant; existing variants restore mana, energy, or runic power |
-| Undead Hunter | Neither Touch of the Grave variant includes Hunter | Decide the Hunter variant and extend SQL, client learning masks, and the C++ login/proc handling |
-
-For Undead Hunters, merely teaching `910018` or `910019` is insufficient: `EnsureRacials` explicitly
-removes both for classes outside its existing melee/caster lists. Applying a C++ change requires a
-build, which must be explicitly requested under AGENTS.md. The existing Death Knight exclusion uses
-the same logic. These are coverage gaps in the current design, not resolved by the data corrections.
 
 Gnome Eureka is explicitly implemented for Warrior, Rogue, Priest, and Warlock. Hunter, Mage, and
 Death Knight do not have an assigned Eureka variant. This audit preserves that class-specific design;
@@ -55,4 +51,5 @@ The audit checks data eligibility and synchronization; it does not establish cor
 tooltips, VFX, or proc behavior for every class. Generated racial records passed the generator's
 validation and idempotence checks, and the installed MPQ records were extracted and compared with
 the generated DBC. The SQL linter reported no errors in the new updates but still fails on pre-existing
-issues in other pending SQL files. No C++ build was performed.
+issues in other pending SQL files. The C++ linter reported only pre-existing issues, and the Docker
+worldserver build completed successfully.

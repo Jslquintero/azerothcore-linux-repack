@@ -151,6 +151,8 @@ close and restart the WoW client so it loads the new record.
 `generate_race_class_dbc.py` adds the supported Retail and WoW: Forever combinations to
 `CharBaseInfo.dbc` and adds male and female starting outfit records to `CharStartOutfit.dbc`.
 It also extends `SkillRaceClassInfo.dbc` so Gnome Hunters can use their starting guns.
+Undead Hunters take the Dwarf hunter shirt, pants, and boots while keeping their own bow, quiver,
+and arrows, so they receive a complete outfit without changing their starting weapon skills.
 Provide original 3.3.5a source files; generated files are written to `DBFilesClient/` by default:
 
 ```bash

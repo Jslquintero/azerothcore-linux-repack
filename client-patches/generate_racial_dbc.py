@@ -1375,6 +1375,7 @@ def patch_spell_dbc(path: Path):
 
 # Preserve the physical/caster racial variants when adding Retail classes.
 RACIAL_CLASS_MASKS = {
+    910018: 15,  # Undead physical Touch of the Grave: add Hunter.
     15034: 400,  # Orc caster Blood Fury: Priest, Mage, Warlock.
     14022: 47,   # Draenei physical Heroic Presence: add Rogue.
     14023: 464,  # Draenei caster Heroic Presence: add Warlock.
@@ -1499,9 +1500,9 @@ def patch_skill_line_ability(path: Path):
             berserking_found = True
         if record[2] == 910017 and record[1] == 733 and record[3] == 128:
             rapid_regeneration_found = True
-        if record[2] == 910018 and record[1] == 220 and record[3] == 16 and record[4] == 11:
+        if record[2] == 910018 and record[1] == 220 and record[3] == 16:
             touch_melee_found = True
-        if record[2] == 910019 and record[1] == 220 and record[3] == 16 and record[4] == 400:
+        if record[2] == 910019 and record[1] == 220 and record[3] == 16:
             touch_caster_found = True
         if record[2] == 910020 and record[1] == 101 and record[3] == 4:
             big_game_found = True
@@ -1556,7 +1557,7 @@ def patch_skill_line_ability(path: Path):
         struct.pack_into("<14I", data, troll_record, *fields)
 
     for ability_id, spell_id, class_mask, found in (
-        (910018, 910018, 11, touch_melee_found),
+        (910018, 910018, 15, touch_melee_found),
         (910019, 910019, 400, touch_caster_found),
     ):
         if found:
