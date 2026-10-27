@@ -151,8 +151,9 @@ close and restart the WoW client so it loads the new record.
 `generate_race_class_dbc.py` adds the supported Retail and WoW: Forever combinations to
 `CharBaseInfo.dbc` and adds male and female starting outfit records to `CharStartOutfit.dbc`.
 It also extends `SkillRaceClassInfo.dbc` so Gnome Hunters can use their starting guns.
-Undead Hunters take the Dwarf hunter shirt, pants, and boots while keeping their own bow, quiver,
-and arrows, so they receive a complete outfit without changing their starting weapon skills.
+Human and Undead Hunters take the Dwarf hunter shirt, pants, and boots while keeping their own bow,
+quiver, and arrows, so they receive a complete outfit without changing their starting weapon skills.
+The clothing donors also update stock outfit records that already exist in the source DBC.
 Provide original 3.3.5a source files; generated files are written to `DBFilesClient/` by default:
 
 ```bash
@@ -193,9 +194,10 @@ action bars, weapon skills compatible with Individual Progression, and caster Bl
 | Draenei | Rogue, Warlock |
 
 Apply the world updates after the module's base SQL, install all three DBCs in the client MPQ and the two
-server DBCs described above, then restart worldserver. Existing records for either outfit gender are
-preserved when rerunning the generator. Adding a combination does not add class trainers or class quests
-to its starting zone; those remain the WotLK content provided by the core and installed modules.
+server DBCs described above, then restart worldserver. Existing outfit records are reused when rerunning
+the generator, and clothing donors are reapplied idempotently. Adding a combination does not add class
+trainers or class quests to its starting zone; those remain the WotLK content provided by the core and
+installed modules.
 
 Retail references: Blizzard's [race/class table](https://news.blizzard.com/en-us/article/23865973/play-as-a-mage-priest-or-rogue-of-any-race),
 [Warlock expansion](https://worldofwarcraft.blizzard.com/en-us/news/23973735/level-up-your-warlock-and-pets),

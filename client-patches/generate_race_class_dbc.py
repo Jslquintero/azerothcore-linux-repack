@@ -58,9 +58,10 @@ OUTFIT_TEMPLATE_RACE = {
 }
 
 # Keep the template's weapons and accessories, but take shirt, pants, and boots
-# from another hunter outfit. This preserves the bow of the Undead template
-# while giving it the complete Dwarf clothing set.
+# from another hunter outfit. This preserves each template's bow, quiver, and
+# arrows while giving it the complete Dwarf clothing set.
 OUTFIT_CLOTHING_DONOR = {
+    (1, 3): 3,  # Human Hunter clothing from Dwarf Hunter.
     (5, 3): 3,  # Undead Hunter clothing from Dwarf Hunter.
 }
 
@@ -145,6 +146,26 @@ def patch_char_start_outfit(source: Path, destination: Path):
     ]
     outfit_by_key = {unpack_outfit_key(record): record for record in records}
 
+    # Apply clothing donors to records that already exist in the source DBC.
+    # The stock 3.3.5a file contains outfits for combinations that were not
+    # playable yet, so the donor cannot rely on the record being appended.
+    for index, record in enumerate(records):
+        race, class_id, gender = unpack_outfit_key(record)
+        donor_race = OUTFIT_CLOTHING_DONOR.get((race, class_id))
+        if donor_race is None:
+            continue
+
+        donor = outfit_by_key.get((donor_race, class_id, gender))
+        if donor is None:
+            raise ValueError(
+                f"CharStartOutfit.dbc: no clothing donor outfit for race {donor_race}, "
+                f"class {class_id}, gender {gender}"
+            )
+
+        patched = bytearray(record)
+        apply_clothing_donor(patched, donor)
+        records[index] = bytes(patched)
+
     next_id = max(struct.unpack_from("<I", record)[0] for record in records) + 1
     additions = []
     for race, class_id in RACE_CLASS_PAIRS:
@@ -178,6 +199,10 @@ def patch_char_start_outfit(source: Path, destination: Path):
 
             additions.append(bytes(record))
             next_id += 1
+
+    for index, record in enumerate(records):
+        start = HEADER_SIZE + index * record_size
+        data[start:start + record_size] = record
 
     data[records_end:records_end] = b"".join(additions)
     struct.pack_into("<I", data, 4, record_count + len(additions))
