@@ -174,6 +174,7 @@ function inst_download_client_data {
 
     if [ "$VERSION" == "$INSTALLED_VERSION" ]; then
         echo "Data $VERSION already installed. If you want to force the download remove the following file: $dataVersionFile"
+        bash "$(dirname "${BASH_SOURCE[0]}")/install-custom-dbc.sh" "$path"
         return
     fi
 
@@ -181,7 +182,8 @@ function inst_download_client_data {
     curl -L https://github.com/wowgaming/client-data/releases/download/$VERSION/data.zip > "$zipPath" \
         && echo "unzip downloaded file in $path..." && unzip -q -o "$zipPath" -d "$path/" \
         && echo "Remove downloaded file" && rm "$zipPath" \
-        && echo "INSTALLED_VERSION=$VERSION" > "$dataVersionFile"
+        && echo "INSTALLED_VERSION=$VERSION" > "$dataVersionFile" \
+        && bash "$(dirname "${BASH_SOURCE[0]}")/install-custom-dbc.sh" "$path"
 }
 
 

@@ -243,6 +243,8 @@ RUN userdel --remove ubuntu \
 
 COPY --chown=$DOCKER_USER:$DOCKER_USER apps apps
 
+COPY --chown=$DOCKER_USER:$DOCKER_USER client-patches/DBFilesClient client-patches/DBFilesClient
+
 VOLUME /azerothcore/env/dist/data
 
 USER $DOCKER_USER

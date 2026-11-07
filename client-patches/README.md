@@ -165,6 +165,13 @@ python client-patches/generate_race_class_dbc.py \
 
 Package all three generated files in the client MPQ under `DBFilesClient/`. The server must also load
 the generated `CharStartOutfit.dbc` and `SkillRaceClassInfo.dbc` from its configured DBC directory.
+The client-data installer copies the versioned custom DBC files into the server's `dbc/` directory,
+even when the stock client-data version is already installed. The Docker `client-data` image must
+be built from this repository to include these files; upstream images do not include them.
+For an existing native installation, stop worldserver and run
+`bash apps/installer/includes/install-custom-dbc.sh /path/to/server/data`, then restart worldserver.
+Use the directory containing `dbc/` as the argument. This restores starting outfits for newly
+created characters; it does not add equipment to existing characters.
 Fully close and restart the WoW client after installing the MPQ. This covers only the ten playable
 WotLK races and classes present in 3.3.5a; later races, Monk, Demon Hunter, and Evoker require additional
 client and core support. The existing custom Undead Paladin combination is retained.
