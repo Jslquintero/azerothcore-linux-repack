@@ -26,7 +26,11 @@ Tests (Google Test, in `src/test/`): configure `-DBUILD_TESTING=ON`, then `ctest
 ## Offline repack packaging
 
 Only generate or refresh the large offline repack when the user explicitly asks
-for a package/release. From this repository root, use the wrapper:
+for a package/release. To package and publish a GitHub Release with its archive
+and checksum, use `./release-offline.sh <version>` from this repository root.
+It requires a clean, pushed checkout, authenticated `gh`, and a new version/tag.
+Use this only when the user asks to publish. For packaging without publishing,
+use the exporter wrapper:
 
 ```bash
 ./export-offline.sh --output /absolute/path/to/a/new/AzerothCore-offline-YYYYMMDD

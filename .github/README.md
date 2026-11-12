@@ -26,11 +26,13 @@ correctly.
 
 **Ready-to-play offline package (Linux x86_64):** [Download the complete repack](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz) · [SHA-256](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz.sha256).
 
-Extract the archive and run `./instalar.sh`. It includes Docker images, server
+Extract the archive and run `./install.sh`; choose English or Spanish when
+prompted. It includes Docker images, server
 data, clean databases, the client patch, and the addon. Docker with Compose and
 your WoW 3.3.5a client must already be installed. Installation loads the bundled
 images locally; no source clone or compilation is required.
-Follow the included `LEEME.txt` for account creation and client setup.
+Follow `README.txt` for English instructions or `README.es.txt` for Spanish,
+including account creation and client setup.
 
 Download each file from the latest release:
 
@@ -207,12 +209,13 @@ contenido custom de este repack.
 
 **Paquete offline listo para jugar (Linux x86_64):** [Descargar el repack completo](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz) · [SHA-256](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz.sha256).
 
-Descomprime el archivo y ejecuta `./instalar.sh`. Incluye imágenes Docker,
+Descomprime el archivo y ejecuta `./install.sh`; elige English o Español cuando
+se solicite. Incluye imágenes Docker,
 datos del servidor, bases limpias, el parche del cliente y el addon. Necesitas
 Docker con Compose y tu cliente WoW 3.3.5a instalados. El instalador carga las
 imágenes incluidas; no hace falta clonar el código ni compilar.
-Consulta `LEEME.txt`, incluido en el paquete, para crear una cuenta y configurar
-el cliente.
+Consulta `README.es.txt` para instrucciones en español o `README.txt` en inglés,
+incluyendo cómo crear una cuenta y configurar el cliente.
 
 Descarga cada archivo desde el último release:
 

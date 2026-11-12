@@ -35,9 +35,11 @@ for details about the custom client data.
 
 **Ready-to-play offline package (Linux x86_64):** [Download the complete repack](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz) · [SHA-256](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz.sha256).
 
-Extract the archive and run `./instalar.sh`. Images, server data, clean databases,
-client patch and addon are included. Docker with Compose and your WoW 3.3.5a
+Extract the archive and run `./install.sh`. Choose English or Spanish in the
+installer. It includes Docker images, server data, clean databases,
+the client patch, and the addon. Docker with Compose and your WoW 3.3.5a
 client must already be installed. No Git clone or compilation is needed.
+See `README.txt` for English instructions or `README.es.txt` for Spanish.
 
 Separate client downloads (already included in the offline package):
 
@@ -47,10 +49,11 @@ Separate client downloads (already included in the offline package):
 ### Quick Start
 
 For a ready-to-run offline distribution, use the generated binary package and
-run `./instalar.sh` inside it. It includes precompiled Docker images, server data,
-a clean database, and the client patch/addon. Docker and Compose must already be
-installed; the WoW client is separate. See [offline packaging](apps/repack/README.md)
-to generate and test a package locally. The source workflow below still compiles.
+run `./install.sh` inside it. Choose English or Spanish when prompted. It
+includes precompiled Docker images, server data, a clean database, and the
+client patch/addon. Docker and Compose must already be installed; the WoW client
+is separate. See [offline packaging](apps/repack/README.md) to generate a
+package locally. The source workflow below still compiles.
 
 Requirements:
 
@@ -221,9 +224,11 @@ del cliente](client-patches/README.md) para más detalles sobre los datos custom
 
 **Paquete offline listo para jugar (Linux x86_64):** [Descargar el repack completo](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz) · [SHA-256](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz.sha256).
 
-Descomprime el archivo y ejecuta `./instalar.sh`. Incluye imágenes, datos del
-servidor, bases limpias, parche y addon. Necesitas Docker con Compose y tu cliente
-WoW 3.3.5a instalado. No hace falta clonar el repositorio ni compilar.
+Descomprime el archivo y ejecuta `./install.sh`; puedes elegir English o
+Español. Incluye imágenes, datos del servidor, bases limpias, parche y addon.
+Necesitas Docker con Compose y tu cliente WoW 3.3.5a instalado. No hace falta
+clonar el repositorio ni compilar.
+Consulta `README.es.txt` en español o `README.txt` en inglés.
 
 Descargas separadas del cliente (ya incluidas en el paquete offline):
 
@@ -233,10 +238,11 @@ Descargas separadas del cliente (ya incluidas en el paquete offline):
 ### Inicio Rápido
 
 Para jugar sin compilar ni descargar componentes adicionales, usa el paquete
-binario offline y ejecuta `./instalar.sh` dentro de su carpeta. Incluye imágenes
-Docker, datos del servidor, base inicial y parche/addon. Requiere Docker y Compose
-instalados y tu cliente WoW por separado. Consulta [cómo generar el paquete](apps/repack/README.md).
-El procedimiento del repositorio que sigue continúa siendo para compilar.
+binario offline y ejecuta `./install.sh` dentro de su carpeta. Elige English o
+Español cuando se solicite. Incluye imágenes Docker, datos del servidor, base
+inicial y parche/addon. Requiere Docker y Compose instalados y tu cliente WoW por
+separado. Consulta [cómo generar el paquete](apps/repack/README.md). El
+procedimiento del repositorio que sigue continúa siendo para compilar.
 
 Requisitos:
 

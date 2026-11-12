@@ -7,6 +7,23 @@ Engine with Compose v2 already installed.
 
 ## Package a release
 
+To generate the offline package, create a GitHub Release, and upload the archive
+and checksum in one step, run this from the repository root after committing and
+pushing the source changes:
+
+```bash
+./release-offline.sh 1.1.1
+```
+
+Use the next unused `MAJOR.MINOR.PATCH` version. The script requires `gh`
+authenticated to the repository and a clean checkout matching the latest commit
+on its upstream branch. It keeps the generated package and archive beside the
+source checkout. Use `--output-dir /path/to/package` to choose another location;
+options such as `--client-patch` are passed to the exporter. It refuses to
+overwrite existing output or reuse an existing release/tag.
+
+For packaging without publishing, use the exporter directly:
+
 From the repository root:
 
 ```bash
@@ -63,18 +80,23 @@ also reduces the SQL seed and module assets.
 
 ## Install and verify
 
-Run `./instalar.sh` from the output directory. It verifies checksums, loads images,
-restores maps, initializes MySQL, and starts the servers. It creates a random
+Run `./install.sh` from the output directory and choose English or Spanish. It
+verifies checksums, loads images, restores maps, initializes MySQL, and starts the
+servers. It creates a random
 database password. MySQL has no host port and game ports bind to loopback.
-Runtime services use a standard bridge so Docker can publish the game ports.
+SOAP also binds to loopback; use a GM level 3 account for dashboard SOAP
+features, and do not expose that port publicly. Runtime services use a standard
+bridge so Docker can publish the ports.
 They do not need Internet access; local images use `pull_policy: never`.
 
-Use `./crear-cuenta.sh` (requires Python 3 for its terminal helper) to create a
-player account after startup. Without Python, use `./console.sh` and
+Use `./create-account.sh` (choose English or Spanish; requires Python 3 for its
+terminal helper) to create a player account after startup. Without Python, use
+`./console.sh` and
 `account create USER PASSWORD`. The helper sends
 the account command to the server, which validates and hashes the password; it
 then checks that the account was created. `./console.sh` remains available.
-Install the bundled client patch and addon as described in `LEEME.txt`.
+Follow `README.txt` for English instructions or `README.es.txt` for Spanish.
+Install the bundled client patch and addon as described there.
 The offline preset has 100 bots; adjust the two random bot count settings in
 `compose.json` if desired after installation.
 

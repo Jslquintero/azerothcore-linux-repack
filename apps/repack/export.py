@@ -151,7 +151,7 @@ def clean_seed(dest, images, temporary, source_database):
 
 
 def compose_file(dest, images, gameplay):
-    connection = 'ac-database;3306;root;${REPACK_DB_PASSWORD:?Run instalar.sh};'
+    connection = 'ac-database;3306;root;${REPACK_DB_PASSWORD:?Run install.sh};'
     env = {key: str(value) for key, value in gameplay.items() if value is not None}
     env.update({
         'AC_LOGIN_DATABASE_INFO': connection + 'acore_auth',
@@ -160,6 +160,9 @@ def compose_file(dest, images, gameplay):
         'AC_PLAYERBOTS_DATABASE_INFO': connection + 'acore_playerbots',
         'AC_DATA_DIR': '/azerothcore/env/dist/data',
         'AC_LOGS_DIR': '/azerothcore/env/dist/logs',
+        'AC_SOAP_ENABLED': '1',
+        'AC_SOAP_IP': '0.0.0.0',
+        'AC_SOAP_PORT': '7878',
         'AC_UPDATES_ENABLE_DATABASES': '0',
         'AC_PLAYERBOTS_UPDATES_ENABLE_DATABASES': '0',
         'AC_AI_PLAYERBOT_MIN_RANDOM_BOTS': '100',
@@ -181,7 +184,7 @@ def compose_file(dest, images, gameplay):
         },
         'ac-database': {
             'image': images['ac-database'], 'pull_policy': 'never', 'restart': 'unless-stopped',
-            'environment': {'MYSQL_ROOT_PASSWORD': '${REPACK_DB_PASSWORD:?Run instalar.sh}'},
+            'environment': {'MYSQL_ROOT_PASSWORD': '${REPACK_DB_PASSWORD:?Run install.sh}'},
             'volumes': ['database:/var/lib/mysql', './seed:/docker-entrypoint-initdb.d:ro,z'],
             'healthcheck': {'test': ['CMD-SHELL', 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" '
                                    'mysql --protocol=TCP -h127.0.0.1 -uroot '
@@ -200,7 +203,10 @@ def compose_file(dest, images, gameplay):
             'stdin_open': True, 'tty': True,
         }
     services['ac-authserver']['ports'] = ['127.0.0.1:${REPACK_AUTH_PORT:-3724}:3724']
-    services['ac-worldserver']['ports'] = ['127.0.0.1:${REPACK_WORLD_PORT:-8085}:8085']
+    services['ac-worldserver']['ports'] = [
+        '127.0.0.1:${REPACK_WORLD_PORT:-8085}:8085',
+        '127.0.0.1:${REPACK_SOAP_PORT:-7878}:7878',
+    ]
     services['ac-worldserver']['stop_grace_period'] = '2m'
     services['ac-worldserver']['volumes'] += [
         'data:/azerothcore/env/dist/data:ro', './modules:/azerothcore/modules:ro,z']
@@ -320,7 +326,7 @@ def package_payload(dest, images, config, client_patch, mount):
         for path in sorted(dest.rglob('*')):
             if path.is_file() and path.name != 'SHA256SUMS':
                 stream.write(f'{checksum(path)}  {path.relative_to(dest)}\n')
-    print(f'Ready: {dest}\nRun ./instalar.sh in that directory. Live databases were only read, never changed.')
+    print(f'Ready: {dest}\nRun ./install.sh in that directory. Live databases were only read, never changed.')
 
 
 if __name__ == '__main__':
