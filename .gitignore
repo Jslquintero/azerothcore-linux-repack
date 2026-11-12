@@ -120,5 +120,16 @@ __pycache__/
 #  !modules/yourmodule
 #
 # ==================
+
+# Generated offline repack packages and local installations.
+# Keep these out of source commits; publish distributable archives as release assets.
+/AzerothCore-offline-*/
+/installed-repack-*/
+/offline-smoke-*/
+/repack-output/
+*.tar.gz
+*.sha256
+.installed-version
+
 .cache
 compile_commands.json

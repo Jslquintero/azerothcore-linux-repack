@@ -23,6 +23,26 @@ C++20 required (`CMAKE_CXX_STANDARD 20`). Useful flags: `BUILD_TESTING=ON` (Goog
 
 Tests (Google Test, in `src/test/`): configure `-DBUILD_TESTING=ON`, then `ctest` or `./src/test/unit_tests` from the build dir.
 
+## Offline repack packaging
+
+Only generate or refresh the large offline repack when the user explicitly asks
+for a package/release. From this repository root, use the wrapper:
+
+```bash
+./export-offline.sh --output /absolute/path/to/a/new/AzerothCore-offline-YYYYMMDD
+```
+
+The output path must not already exist and must be outside this source tree.
+Packaging requires Docker Compose v2, the matching local database/authserver/
+worldserver images, running `ac-worldserver` and `ac-database` containers, the
+versioned client patch, and Python's `mpyq` package. The exporter currently
+supports Linux amd64. It packages the working world content but excludes live
+account and character rows; never include local configuration or secrets.
+Packaging is not a build and does not update the running server. Read
+`apps/repack/README.md` for prerequisites, validation, installation, and release
+steps. Do not commit the generated package or archives to the source repository;
+publish distributable archives as GitHub Release assets.
+
 ## Repository layout
 
 - `src/common/` — networking (Asio), crypto, config, logging, shared utilities.
