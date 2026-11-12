@@ -24,6 +24,14 @@ correctly.
 
 ### Downloads
 
+**Ready-to-play offline package (Linux x86_64):** [Download the complete repack](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz) · [SHA-256](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz.sha256).
+
+Extract the archive and run `./instalar.sh`. It includes Docker images, server
+data, clean databases, the client patch, and the addon. Docker with Compose and
+your WoW 3.3.5a client must already be installed. Installation loads the bundled
+images locally; no source clone or compilation is required.
+Follow the included `LEEME.txt` for account creation and client setup.
+
 Download each file from the latest release:
 
 - [Download patch-z.mpq](https://github.com/Jslquintero/azerothcore-linux-repack/releases/latest/download/patch-z.mpq) — place it in the client's `Data` directory.
@@ -33,7 +41,10 @@ Fully close and restart the client after installing the MPQ. Enable **Acore
 Racial Tooltips** in the AddOns list at character selection. See the [client
 patch notes](../client-patches/README.md) for details.
 
-### Quick Start
+### Source Checkout Quick Start
+
+The commands below are for running from a source checkout. To install the
+ready-to-play package, follow the offline package instructions above.
 
 Requirements:
 
@@ -124,10 +135,13 @@ I also made a custom dashboard that can be used with this repack:
 https://github.com/Jslquintero/azerothcore-dashboard
 
 The dashboard is an Electron app for managing AzerothCore Docker services on
-Linux. It can be used for service start/stop/restart, worldserver console
-commands, account management, live logs, editing `docker-compose.override.yml`
-variables, realm settings, item browsing, module docs, tray integration, and
-update notifications.
+Linux. Version [1.1.4](https://github.com/Jslquintero/azerothcore-dashboard/releases/tag/v1.1.4)
+also detects the offline package's `compose.json`; set **Project Root** to the
+extracted package folder to see its services and images and to start, stop, or
+restart them and view their logs. Other features include worldserver commands,
+account management, realm settings, item browsing, module docs, tray integration,
+and update notifications. Some database and SOAP features require their own
+connection settings.
 
 The dashboard is optional. This repack also works from the terminal with the
 scripts included here.
@@ -161,8 +175,8 @@ Files named `*.local.yml`, `*.local.yaml`, `*.local.override.yml`, and
 - Built for personal servers and playing with friends.
 - Not intended as a professional private server hosting package.
 - Large SQL files are included because this is a source-based repack.
-- Client data extraction may still be required depending on your Docker image
-  setup and available volumes.
+- The offline package includes server map data. A source checkout may still
+  require client data extraction depending on its Docker image and volumes.
 
 ---
 
@@ -191,6 +205,15 @@ contenido custom de este repack.
 
 ### Descargas
 
+**Paquete offline listo para jugar (Linux x86_64):** [Descargar el repack completo](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz) · [SHA-256](https://github.com/Jslquintero/azerothcore-linux-repack/releases/download/1.1.0/AzerothCore-offline-20261108-linux-amd64.tar.gz.sha256).
+
+Descomprime el archivo y ejecuta `./instalar.sh`. Incluye imágenes Docker,
+datos del servidor, bases limpias, el parche del cliente y el addon. Necesitas
+Docker con Compose y tu cliente WoW 3.3.5a instalados. El instalador carga las
+imágenes incluidas; no hace falta clonar el código ni compilar.
+Consulta `LEEME.txt`, incluido en el paquete, para crear una cuenta y configurar
+el cliente.
+
 Descarga cada archivo desde el último release:
 
 - [Descargar patch-z.mpq](https://github.com/Jslquintero/azerothcore-linux-repack/releases/latest/download/patch-z.mpq) — colócalo en la carpeta `Data` del cliente.
@@ -201,7 +224,10 @@ Cierra por completo y reinicia el cliente después de instalar el MPQ. Activa
 personaje. Consulta las [notas de parches del cliente](../client-patches/README.md)
 para más detalles.
 
-### Inicio Rápido
+### Inicio Rápido desde el Código Fuente
+
+Los comandos siguientes son para ejecutar desde un clon del código fuente. Para
+instalar el paquete listo para jugar, sigue primero las instrucciones offline.
 
 Requisitos:
 
@@ -292,10 +318,13 @@ También hice un dashboard custom que se puede usar con este repack:
 https://github.com/Jslquintero/azerothcore-dashboard
 
 El dashboard es una app Electron para manejar servicios Docker de AzerothCore en
-Linux. Sirve para iniciar/detener/reiniciar servicios, ejecutar comandos en la
-consola del worldserver, manejar cuentas, ver logs en vivo, editar variables de
-`docker-compose.override.yml`, cambiar settings del realm, buscar items, ver
-docs de módulos, usar tray integration y recibir update notifications.
+Linux. La versión [1.1.4](https://github.com/Jslquintero/azerothcore-dashboard/releases/tag/v1.1.4)
+también detecta el `compose.json` del paquete offline. Selecciona como **Project
+Root** la carpeta extraída para ver sus servicios e imágenes, iniciarlos,
+detenerlos o reiniciarlos y consultar sus logs. También incluye comandos del
+worldserver, gestión de cuentas, ajustes del realm, búsqueda de items, docs de
+módulos, tray integration y notificaciones de actualización. Algunas funciones
+de base de datos y SOAP requieren configurar sus conexiones por separado.
 
 El dashboard es opcional. Este repack también funciona desde la terminal con los
 scripts incluidos aquí.
@@ -329,5 +358,6 @@ Los archivos `*.local.yml`, `*.local.yaml`, `*.local.override.yml` y
 - Hecho para servidores personales y jugar con amigos.
 - No está pensado como paquete profesional para hosting de servidores privados.
 - Los SQL grandes están incluidos porque este es un repack basado en source.
-- La extracción de datos del cliente puede seguir siendo necesaria dependiendo
-  de la imagen Docker y los volúmenes disponibles.
+- El paquete offline incluye los mapas del servidor. Un clon del código fuente
+  todavía puede requerir extraer datos del cliente según la imagen Docker y los
+  volúmenes disponibles.
